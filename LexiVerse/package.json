@@ -3,28 +3,26 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-"scripts": {
-    "dev": "npm run build-css && concurrently \"vite\" \"npm:watch-css\"",
-    "build-css": "npx tailwindcss -i ./src/input.css -o ./src/output.css",
-    "watch-css": "npx tailwindcss -i ./src/input.css -o ./src/output.css --watch",
-    "build": "npm run build-css && vite build",
-    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@react-three/drei": "^10.7.4",
+    "@react-three/drei": "^10.7.5",
     "@react-three/fiber": "^9.3.0",
     "axios": "^1.11.0",
-    "concurrently": "^9.2.1",
+    "firebase": "^12.2.1",
     "framer-motion": "^12.23.12",
-    "lucide-react": "^0.542.0",
+    "lucide-react": "^0.544.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "three": "^0.179.1"
+    "three": "^0.180.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
-    "@tailwindcss/postcss": "^4.1.12",
+    "@tailwindcss/postcss": "^4.1.13",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.0",
@@ -34,7 +32,7 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
     "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.12",
+    "tailwindcss": "^4.1.13",
     "vite": "^7.1.2"
   }
 }
