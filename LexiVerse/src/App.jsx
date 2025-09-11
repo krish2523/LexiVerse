@@ -1,35 +1,36 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { Suspense } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { ScalesOfJustice } from './components/ScalesOfJustice';
+import { Dashboard } from './components/Dashboard';
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    // The main container for the entire page.
+    // The `relative` class is essential for positioning children.
+    <div className="relative w-screen h-screen bg-gray-900">
 
-export default App
+      {/* 3D CANVAS - BACKGROUND */}
+      {/* We use absolute positioning and z-index 0 to lock it to the back. */}
+      <div className="absolute top-0 left-0 w-full h-full z-0">
+        <Canvas>
+          {/* Lights are crucial for the model to be visible */}
+          <ambientLight intensity={1.5} />
+          <directionalLight position={[10, 10, 5]} intensity={1} />
+          <pointLight position={[-10, -5, -10]} intensity={1.5} />
+          
+          <Suspense fallback={null}>
+            <ScalesOfJustice />
+          </Suspense>
+        </Canvas>
+      </div>
+
+      {/* DASHBOARD UI - FOREGROUND */}
+      {/* We use relative positioning and z-index 10 to pull it to the front. */}
+      <div className="relative z-10 flex h-full w-full items-center justify-center">
+        <Dashboard />
+      </div>
+
+    </div>
+  );
+}
+export default App;
