@@ -23,13 +23,13 @@ function GLBModel(props) {
             child.castShadow = true;
             child.receiveShadow = true;
             if (child.material) {
-              // Apply black and bronze color to all materials with increased opacity
+              // Apply a high-contrast silver and gold color scheme
               child.material = child.material.clone();
-              child.material.color.setHex(0x2d1810); // Dark bronze/black color
-              child.material.roughness = 0.3;
-              child.material.metalness = 0.8;
-              child.material.transparent = true;
-              child.material.opacity = 0.7; // Increased opacity for better visibility
+              child.material.color.setHex(0xd4af37); // Gold color
+              child.material.roughness = 0.1;
+              child.material.metalness = 1.0;
+              child.material.transparent = false;
+              child.material.opacity = 1.0;
               child.material.needsUpdate = true;
             }
           }
@@ -37,15 +37,7 @@ function GLBModel(props) {
       }
     }, [scene]);
 
-    return (
-      <primitive
-        ref={modelRef}
-        object={scene.clone()}
-        {...props}
-        scale={1.2}
-        position={[4, -2.5, -3]}
-      />
-    );
+    return <primitive ref={modelRef} object={scene.clone()} {...props} />;
   } catch (error) {
     console.warn("GLB model failed to load:", error);
     return null;
@@ -63,16 +55,16 @@ function FallbackModel(props) {
   });
 
   return (
-    <group ref={modelRef} {...props} scale={1.2} position={[4, -2.5, -3]}>
+    <group ref={modelRef} {...props}>
       {/* Base */}
       <mesh position={[0, -1.5, 0]}>
         <cylinderGeometry args={[0.8, 0.8, 0.2, 32]} />
         <meshStandardMaterial
-          color="#2D1810"
-          roughness={0.3}
-          metalness={0.8}
+          color="#3b3182"
+          roughness={0.2}
+          metalness={0.9}
           transparent
-          opacity={0.7}
+          opacity={0.85}
         />
       </mesh>
 
@@ -80,11 +72,11 @@ function FallbackModel(props) {
       <mesh position={[0, -0.5, 0]}>
         <cylinderGeometry args={[0.12, 0.12, 2, 16]} />
         <meshStandardMaterial
-          color="#1A0F08"
-          roughness={0.3}
-          metalness={0.8}
+          color="#2a245c"
+          roughness={0.2}
+          metalness={0.9}
           transparent
-          opacity={0.7}
+          opacity={0.85}
         />
       </mesh>
 
@@ -92,11 +84,11 @@ function FallbackModel(props) {
       <mesh position={[0, 0.6, 0]}>
         <boxGeometry args={[2.5, 0.12, 0.12]} />
         <meshStandardMaterial
-          color="#CD7F32"
-          roughness={0.2}
-          metalness={0.9}
+          color="#a7a1ff"
+          roughness={0.1}
+          metalness={1.0}
           transparent
-          opacity={0.7}
+          opacity={0.9}
         />
       </mesh>
 
