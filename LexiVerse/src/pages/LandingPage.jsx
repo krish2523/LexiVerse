@@ -5,6 +5,7 @@ import { Canvas } from "@react-three/fiber";
 import { Suspense } from "react";
 import { ScalesOfJustice } from "../components/ScalesOfJustice";
 import "./LandingPage.css";
+import Logo from "../assets/Logo.png";
 
 const LandingPage = () => {
   return (
@@ -16,7 +17,7 @@ const LandingPage = () => {
         transition={{ duration: 0.8 }}
       >
         <header className="landing-header">
-          <img src="/src/assets/Logo.png" alt="LexiVerse Logo" className="logo" />
+          <img src={Logo} alt="LexiVerse Logo" className="logo" />
           <h1>LexiVerse</h1>
         </header>
         <main className="landing-main">
