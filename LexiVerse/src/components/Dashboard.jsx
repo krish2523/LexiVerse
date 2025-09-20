@@ -233,7 +233,6 @@ export default function Dashboard() {
       fd.append("message", text);
       if (documentId) fd.append("session_id", documentId);
 
-      const apiUrl = process.env.REACT_APP_API_URL;
       const res = await fetch(`${apiUrl}/chat`, {
         method: "POST",
         body: fd,
