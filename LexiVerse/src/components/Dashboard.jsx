@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { ScalesOfJustice } from "./ScalesOfJustice";
 
@@ -26,6 +26,35 @@ export default function Dashboard() {
   const [showUploadHint, setShowUploadHint] = useState(false);
   const [rawAnalyzeJson, setRawAnalyzeJson] = useState(null);
   const [showAnalyzeDetails, setShowAnalyzeDetails] = useState(false);
+
+  // 3D Model Error Boundary
+  const [modelError, setModelError] = useState(false);
+
+  const ThreeDModel = () => {
+    try {
+      if (modelError) return null;
+      return (
+        <div style={{ width: "100px", height: "100px" }}>
+          <Canvas camera={{ position: [0, 0, 2], fov: 50 }}>
+            <ambientLight intensity={2.5} />
+            <directionalLight position={[3, 3, 3]} intensity={2} />
+            <pointLight
+              position={[0, 1, 2]}
+              intensity={3}
+              color="#e0dffc"
+            />
+            <Suspense fallback={null}>
+              <ScalesOfJustice scale={0.3} position={[0, -0.5, 0]} />
+            </Suspense>
+          </Canvas>
+        </div>
+      );
+    } catch (error) {
+      console.warn("3D Model error:", error);
+      setModelError(true);
+      return null;
+    }
+  };
 
   // Legal quotes and facts for upload animation
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
@@ -860,18 +889,7 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
-              <div style={{ width: "100px", height: "100px" }}>
-                <Canvas camera={{ position: [0, 0, 2], fov: 50 }}>
-                  <ambientLight intensity={2.5} />
-                  <directionalLight position={[3, 3, 3]} intensity={2} />
-                  <pointLight
-                    position={[0, 1, 2]}
-                    intensity={3}
-                    color="#e0dffc"
-                  />
-                  <ScalesOfJustice scale={0.3} position={[0, -0.5, 0]} />
-                </Canvas>
-              </div>
+              <ThreeDModel />
             </div>
 
             {/* Chat Messages Area */}

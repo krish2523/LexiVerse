@@ -4,44 +4,54 @@ import { useFrame } from "@react-three/fiber";
 
 function GLBModel(props) {
   const modelRef = useRef();
+  const [loadError, setLoadError] = useState(false);
+
+  let scene = null;
 
   try {
-    const { scene } = useGLTF("/scales_of_justice.glb");
-
-    // Add rotation animation
-    useFrame(() => {
-      if (modelRef.current) {
-        modelRef.current.rotation.y += 0.008;
-      }
-    });
-
-    // Ensure materials are properly set with marble white color
-    React.useEffect(() => {
-      if (scene) {
-        scene.traverse((child) => {
-          if (child.isMesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-            if (child.material) {
-              // Apply a high-contrast silver and gold color scheme
-              child.material = child.material.clone();
-              child.material.color.setHex(0xd4af37); // Gold color
-              child.material.roughness = 0.1;
-              child.material.metalness = 1.0;
-              child.material.transparent = false;
-              child.material.opacity = 1.0;
-              child.material.needsUpdate = true;
-            }
-          }
-        });
-      }
-    }, [scene]);
-
-    return <primitive ref={modelRef} object={scene.clone()} {...props} />;
+    const gltf = useGLTF("/scales_of_justice.glb");
+    scene = gltf.scene;
   } catch (error) {
     console.warn("GLB model failed to load:", error);
+    if (!loadError) {
+      setLoadError(true);
+    }
+  }
+
+  // Add rotation animation (always call useFrame)
+  useFrame(() => {
+    if (modelRef.current) {
+      modelRef.current.rotation.y += 0.008;
+    }
+  });
+
+  // Ensure materials are properly set with marble white color
+  React.useEffect(() => {
+    if (scene && !loadError) {
+      scene.traverse((child) => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+          if (child.material) {
+            // Apply a high-contrast silver and gold color scheme
+            child.material = child.material.clone();
+            child.material.color.setHex(0xd4af37); // Gold color
+            child.material.roughness = 0.1;
+            child.material.metalness = 1.0;
+            child.material.transparent = false;
+            child.material.opacity = 1.0;
+            child.material.needsUpdate = true;
+          }
+        }
+      });
+    }
+  }, [scene, loadError]);
+
+  if (loadError || !scene) {
     return null;
   }
+
+  return <primitive ref={modelRef} object={scene.clone()} {...props} />;
 }
 
 function FallbackModel(props) {
