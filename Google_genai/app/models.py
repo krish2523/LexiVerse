@@ -15,7 +15,7 @@ class AnalyzerResponse(BaseModel):
     Response model from document analyzer component.
     Contains comprehensive analysis results for accepted documents.
     """
-    decision: str = Field("accept", description="Decision status of the document")
+    decision: str = Field(default="accept", description="Decision status of the document, should always be 'accept' for successful analysis")
     document_type: str = Field(..., description="Type of legal document")
     summary: str = Field(..., description="detailed summary of the document")
     important_clauses: List[str] = Field(..., description="3-5 important clauses explained in simple terms")

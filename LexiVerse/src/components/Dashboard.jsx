@@ -2,6 +2,78 @@ import React, { useState, useRef, useEffect, Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { ScalesOfJustice } from "./ScalesOfJustice";
 
+// Move ThreeDModel outside Dashboard to prevent re-renders on every state change
+const ThreeDModel = React.memo(({ modelError, setModelError }) => {
+  if (modelError) {
+    return (
+      <div
+        style={{
+          width: "100px",
+          height: "100px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "rgba(59, 130, 246, 0.1)",
+          borderRadius: "50%",
+          border: "2px solid rgba(59, 130, 246, 0.3)",
+        }}
+      >
+        <span style={{ fontSize: "24px" }}>⚖️</span>
+      </div>
+    );
+  }
+
+  try {
+    return (
+      <div style={{ width: "100px", height: "100px" }}>
+        <Canvas
+          camera={{ position: [0, 0, 2], fov: 50 }}
+          onError={() => {
+            console.warn("Canvas error occurred");
+            setModelError(true);
+          }}
+        >
+          <ambientLight intensity={2.5} />
+          <directionalLight position={[3, 3, 3]} intensity={2} />
+          <pointLight position={[0, 1, 2]} intensity={3} color="#e0dffc" />
+          <Suspense
+            fallback={null}
+            onError={() => {
+              console.warn("Suspense error in 3D model");
+              setModelError(true);
+            }}
+          >
+            <ScalesOfJustice
+              scale={0.3}
+              position={[0, -0.5, 0]}
+              onError={() => setModelError(true)}
+            />
+          </Suspense>
+        </Canvas>
+      </div>
+    );
+  } catch (error) {
+    console.warn("3D Model error:", error);
+    setModelError(true);
+    return (
+      <div
+        style={{
+          width: "100px",
+          height: "100px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "rgba(59, 130, 246, 0.1)",
+          borderRadius: "50%",
+          border: "2px solid rgba(59, 130, 246, 0.3)",
+        }}
+      >
+        <span style={{ fontSize: "24px" }}>⚖️</span>
+      </div>
+    );
+  }
+});
+
 export default function Dashboard() {
   // Vite exposes environment variables via import.meta.env
   const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -10,6 +82,7 @@ export default function Dashboard() {
   const [uploading, setUploading] = useState(false);
 
   const [summary, setSummary] = useState("No document uploaded yet.");
+  const [importantClauses, setImportantClauses] = useState([]);
   const [documentId, setDocumentId] = useState(null);
 
   const [chatInput, setChatInput] = useState("");
@@ -29,77 +102,6 @@ export default function Dashboard() {
 
   // 3D Model Error Boundary
   const [modelError, setModelError] = useState(false);
-
-  const ThreeDModel = () => {
-    if (modelError) {
-      return (
-        <div style={{ 
-          width: "100px", 
-          height: "100px", 
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "rgba(59, 130, 246, 0.1)",
-          borderRadius: "50%",
-          border: "2px solid rgba(59, 130, 246, 0.3)"
-        }}>
-          <span style={{ fontSize: "24px" }}>⚖️</span>
-        </div>
-      );
-    }
-
-    try {
-      return (
-        <div style={{ width: "100px", height: "100px" }}>
-          <Canvas 
-            camera={{ position: [0, 0, 2], fov: 50 }}
-            onError={() => {
-              console.warn("Canvas error occurred");
-              setModelError(true);
-            }}
-          >
-            <ambientLight intensity={2.5} />
-            <directionalLight position={[3, 3, 3]} intensity={2} />
-            <pointLight
-              position={[0, 1, 2]}
-              intensity={3}
-              color="#e0dffc"
-            />
-            <Suspense 
-              fallback={null}
-              onError={() => {
-                console.warn("Suspense error in 3D model");
-                setModelError(true);
-              }}
-            >
-              <ScalesOfJustice 
-                scale={0.3} 
-                position={[0, -0.5, 0]}
-                onError={() => setModelError(true)}
-              />
-            </Suspense>
-          </Canvas>
-        </div>
-      );
-    } catch (error) {
-      console.warn("3D Model error:", error);
-      setModelError(true);
-      return (
-        <div style={{ 
-          width: "100px", 
-          height: "100px", 
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "rgba(59, 130, 246, 0.1)",
-          borderRadius: "50%",
-          border: "2px solid rgba(59, 130, 246, 0.3)"
-        }}>
-          <span style={{ fontSize: "24px" }}>⚖️</span>
-        </div>
-      );
-    }
-  };
 
   // Legal quotes and facts for upload animation
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
@@ -144,101 +146,122 @@ export default function Dashboard() {
     try {
       setUploading(true);
       setUploadedFileName(file.name);
+      // Reset previous analysis data
+      setImportantClauses([]);
 
-      // Create two separate FormData objects — one for analysis, one for chat init
+      // Create FormData for analysis first
       const analyzeFd = new FormData();
       analyzeFd.append("file", file);
-      const initFd = new FormData();
-      initFd.append("file", file);
 
-      // Fire both requests in parallel and wait for both to settle
-      const [analyzeResult, initResult] = await Promise.allSettled([
-        fetch(`${apiUrl}/analyze-document`, {
-          method: "POST",
-          body: analyzeFd,
-        }),
-        fetch(`${apiUrl}/chat`, { method: "POST", body: initFd }),
-      ]);
+      // First, analyze the document
+      const analyzeRes = await fetch(`${apiUrl}/analyze-document`, {
+        method: "POST",
+        body: analyzeFd,
+      });
 
-      // Process analyzer response first (prefer this summary)
-      if (analyzeResult.status === "fulfilled") {
-        const analyzeRes = analyzeResult.value;
-        if (analyzeRes && analyzeRes.ok) {
-          const analyzeData = await analyzeRes.json();
-          console.log(
-            "FULL analyzeData response:",
-            JSON.stringify(analyzeData, null, 2)
-          );
-          console.log("analyzeData.summary:", analyzeData.summary);
-          console.log("analyzeData.decision:", analyzeData.decision);
+      // Process analyzer response first
+      if (analyzeRes && analyzeRes.ok) {
+        const analyzeData = await analyzeRes.json();
+        console.log(
+          "FULL analyzeData response:",
+          JSON.stringify(analyzeData, null, 2)
+        );
+        console.log("analyzeData.summary:", analyzeData.summary);
+        console.log("analyzeData.decision:", analyzeData.decision);
+        console.log("analyzeData.reason:", analyzeData.reason);
 
-          if (analyzeData.decision && analyzeData.decision === "reject") {
-            const reason =
-              analyzeData.reason || "Document rejected by analyzer.";
-            setSummary(`Rejected: ${reason}`);
-            const assistantMsg = {
-              id: Date.now() + Math.random(),
-              role: "assistant",
-              text: `Document rejected: ${reason}`,
-            };
-            setMessages((m) => [...m, assistantMsg]);
-            // still allow chat init response to set session_id below
-            try {
-              setRawAnalyzeJson(JSON.stringify(analyzeData, null, 2));
-            } catch (e) {
-              setRawAnalyzeJson(String(analyzeData));
-            }
-          } else if (analyzeData.summary && analyzeData.summary.trim()) {
-            const s = analyzeData.summary;
-            const lowered = String(s).toLowerCase();
-            if (
-              lowered.includes("validation error") ||
-              lowered.includes("input should be a valid string") ||
-              lowered.includes("structured parsing failed")
-            ) {
-              try {
-                setRawAnalyzeJson(JSON.stringify(analyzeData, null, 2));
-              } catch (e) {
-                setRawAnalyzeJson(String(analyzeData));
-              }
-              setSummary(
-                "Document analysis returned an unexpected format. Please try again or view details."
-              );
-            } else {
-              setSummary(analyzeData.summary);
-              setRawAnalyzeJson(null);
-            }
-          } else {
+        // Check for rejection first (case-insensitive and comprehensive)
+        const isRejected =
+          analyzeData.decision &&
+          (analyzeData.decision.toLowerCase() === "reject" ||
+            analyzeData.decision.toLowerCase() === "rejected" ||
+            analyzeData.decision.toLowerCase() === "rejection");
+
+        console.log("isRejected:", isRejected);
+
+        if (isRejected || analyzeData.reason) {
+          const reason = analyzeData.reason || "Document rejected by analyzer.";
+          console.log("Setting rejection reason:", reason);
+          setSummary(reason);
+          const assistantMsg = {
+            id: Date.now() + Math.random(),
+            role: "assistant",
+            text: reason,
+          };
+          setMessages((m) => [...m, assistantMsg]);
+          try {
+            setRawAnalyzeJson(JSON.stringify(analyzeData, null, 2));
+          } catch (e) {
+            setRawAnalyzeJson(String(analyzeData));
+          }
+          // Don't initialize chat for rejected documents
+          return;
+        } else if (analyzeData.summary && analyzeData.summary.trim()) {
+          const s = analyzeData.summary;
+          const lowered = String(s).toLowerCase();
+          if (
+            lowered.includes("validation error") ||
+            lowered.includes("input should be a valid string") ||
+            lowered.includes("structured parsing failed")
+          ) {
             try {
               setRawAnalyzeJson(JSON.stringify(analyzeData, null, 2));
             } catch (e) {
               setRawAnalyzeJson(String(analyzeData));
             }
             setSummary(
+              "Document analysis returned an unexpected format. Please try again or view details."
+            );
+          } else {
+            setSummary(analyzeData.summary);
+            setRawAnalyzeJson(null);
+            // Store important clauses if available
+            if (analyzeData.important_clauses && Array.isArray(analyzeData.important_clauses)) {
+              setImportantClauses(analyzeData.important_clauses);
+            } else {
+              setImportantClauses([]);
+            }
+          }
+        } else {
+          // Check if there's a reason field even without explicit rejection
+          if (analyzeData.reason) {
+            setSummary(`Analysis issue: ${analyzeData.reason}`);
+          } else if (analyzeData.error) {
+            setSummary(`Error: ${analyzeData.error}`);
+          } else if (analyzeData.message) {
+            setSummary(`Message: ${analyzeData.message}`);
+          } else {
+            setSummary(
               `No summary in response. Backend returned an unexpected format. Please view details.`
             );
           }
-        } else {
-          // analyzer returned non-ok
           try {
-            const txt = analyzeRes
-              ? await analyzeRes.text()
-              : "Analyzer request failed";
-            setSummary("Failed to analyze: " + txt);
+            setRawAnalyzeJson(JSON.stringify(analyzeData, null, 2));
           } catch (e) {
-            setSummary("Failed to analyze: unknown error");
+            setRawAnalyzeJson(String(analyzeData));
           }
         }
       } else {
-        setSummary(
-          "Analyzer request failed: " +
-            (analyzeResult.reason && analyzeResult.reason.message)
-        );
+        // analyzer returned non-ok
+        try {
+          const txt = analyzeRes
+            ? await analyzeRes.text()
+            : "Analyzer request failed";
+          setSummary("Failed to analyze: " + txt);
+        } catch (e) {
+          setSummary("Failed to analyze: unknown error");
+        }
       }
 
-      // Then process chat init result to persist session id
-      if (initResult.status === "fulfilled") {
-        const initRes = initResult.value;
+      // Only if analysis was successful, initialize chat
+      const initFd = new FormData();
+      initFd.append("file", file);
+
+      try {
+        const initRes = await fetch(`${apiUrl}/chat`, {
+          method: "POST",
+          body: initFd,
+        });
         if (initRes && initRes.ok) {
           const initJson = await initRes.json();
           console.log(
@@ -255,15 +278,8 @@ export default function Dashboard() {
               // ignore
             }
           }
-          // Only set summary from init if analyzer didn't provide one
-          if (
-            (!analyzeResult || analyzeResult.status !== "fulfilled") &&
-            initJson.response
-          ) {
-            setSummary(initJson.response);
-          }
         } else {
-          // init returned non-ok — log
+          // init returned non-ok — log but don't fail the upload
           try {
             const txt = initRes ? await initRes.text() : "Chat init failed";
             console.warn("Chat init failed:", txt);
@@ -271,8 +287,8 @@ export default function Dashboard() {
             console.warn("Chat init failed with unknown error");
           }
         }
-      } else {
-        console.warn("Chat init request failed:", initResult.reason);
+      } catch (e) {
+        console.warn("Chat init request failed:", e);
       }
     } catch (e) {
       setSummary("Failed to upload: " + e.message);
@@ -776,6 +792,63 @@ export default function Dashboard() {
                       {summary}
                     </div>
 
+                    {/* Display Important Clauses */}
+                    {importantClauses && importantClauses.length > 0 && (
+                      <div style={{ marginTop: "16px" }}>
+                        <h5
+                          style={{
+                            color: "#1f2937",
+                            fontSize: "16px",
+                            fontWeight: "600",
+                            marginBottom: "12px",
+                            borderBottom: "2px solid #e5e7eb",
+                            paddingBottom: "6px",
+                          }}
+                        >
+                          📋 Important Clauses
+                        </h5>
+                        <div style={{ 
+                          display: "flex", 
+                          flexDirection: "column", 
+                          gap: "12px" 
+                        }}>
+                          {importantClauses.map((clause, index) => (
+                            <div
+                              key={index}
+                              style={{
+                                backgroundColor: "#f8fafc",
+                                border: "1px solid #e2e8f0",
+                                borderRadius: "8px",
+                                padding: "12px",
+                                borderLeft: "4px solid #3b82f6",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  color: "#1e40af",
+                                  fontSize: "14px",
+                                  fontWeight: "600",
+                                  marginBottom: "6px",
+                                }}
+                              >
+                                Clause {index + 1}
+                              </div>
+                              <div
+                                style={{
+                                  color: "#374151",
+                                  fontSize: "13px",
+                                  lineHeight: 1.5,
+                                  whiteSpace: "pre-wrap",
+                                }}
+                              >
+                                {clause}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {rawAnalyzeJson && (
                       <div style={{ marginTop: "8px" }}>
                         <button
@@ -934,7 +1007,10 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
-              <ThreeDModel />
+              <ThreeDModel
+                modelError={modelError}
+                setModelError={setModelError}
+              />
             </div>
 
             {/* Chat Messages Area */}

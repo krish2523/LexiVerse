@@ -32,9 +32,19 @@ class DocumentAnalyzer:
             prompt = f"""
             You are a professional legal document analyzer. Analyze this legal document thoroughly and provide:
 
-            1. Document Type: Identify the most specific type (e.g., "Residential Lease Agreement", "Employment Contract - Full Time", "Mutual Non-Disclosure Agreement", "Terms of Service - SaaS Platform")
+            REQUIRED FIELDS:
+            - decision: Always set to "accept" for successful analysis
+            - document_type: Identify the most specific type (e.g., "Residential Lease Agreement", "Employment Contract - Full Time", "Mutual Non-Disclosure Agreement", "Terms of Service - SaaS Platform")
+            - summary: Provide a comprehensive, multi-paragraph summary (100-200 words)
+            - important_clauses: List 4-6 of the most critical clauses
 
-            2. Summary: Provide a comprehensive, multi-paragraph summary (100-200 words) that covers:
+            DETAILED REQUIREMENTS:
+
+            1. Decision: Always respond with "accept" for any document that can be analyzed
+
+            2. Document Type: Identify the most specific type of legal document
+
+            3. Summary: Provide a comprehensive, multi-paragraph summary (100-200 words) that covers:
                - Purpose and nature of the document
                - Parties involved and their roles
                - Key rights, obligations, and responsibilities
@@ -44,18 +54,18 @@ class DocumentAnalyzer:
                - Notable limitations, exclusions, or special provisions
                Use clear, professional language that explains complex legal concepts in accessible terms.
 
-            3. Important Clauses: List 4-6 of the most critical clauses. For each clause, provide a detailed string explanation (100-200 words) that includes:
+            4. Important Clauses: List 4-6 of the most critical clauses. For each clause, provide a detailed string explanation (100-200 words) that includes:
                - The clause title/topic
                - A brief excerpt of key text (in quotes)
                - Plain language explanation of what it means
                - Why it's important or what risks/benefits it presents
                - Any recommended actions or considerations
-               Format each as a single comrehensive paragraph.
+               Format each as a single comprehensive paragraph.
 
             Document Text:
             {document_text}
 
-            Return your analysis with the exact structure expected by the system.
+            Return your analysis with the exact structure expected by the system, ensuring all fields are properly filled.
             """
             
             messages = [{"role": "user", "content": prompt}]
@@ -73,6 +83,7 @@ class DocumentAnalyzer:
             else:
                 logger.warning("Structured LLM returned None for analysis, using fallback")
                 return AnalyzerResponse(
+                    decision="accept",
                     document_type="Unknown",
                     summary="Analysis could not be completed due to structured output failure.",
                     important_clauses=[
@@ -85,6 +96,7 @@ class DocumentAnalyzer:
         except asyncio.TimeoutError:
             logger.error("Document analysis timed out after 90 seconds")
             return AnalyzerResponse(
+                decision="accept",
                 document_type="Unknown",
                 summary="Document analysis timed out. Please try with a smaller document.",
                 important_clauses=[
@@ -96,6 +108,7 @@ class DocumentAnalyzer:
         except Exception as e:
             logger.error(f"Analysis failed: {str(e)}")
             return AnalyzerResponse(
+                decision="accept",
                 document_type="Unknown",
                 summary=f"Document analysis failed: {str(e)}. Please try again or consult a legal professional.",
                 important_clauses=[
