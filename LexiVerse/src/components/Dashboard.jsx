@@ -353,29 +353,29 @@ export default function Dashboard() {
 
         /* Responsive Dashboard Layout */
         .dashboard-container {
-          position: fixed;
+          position: fixed !important;
           top: 0;
           left: 0;
           right: 0;
           bottom: 0;
-          width: 100vw;
-          height: 100vh;
+          width: 100vw !important;
+          height: 100vh !important;
           background: linear-gradient(180deg, #1e1b4b 0%, #0c0a1d 100%);
-          overflow: hidden;
-          box-sizing: border-box;
+          overflow: hidden !important;
+          box-sizing: border-box !important;
         }
 
         .panels-wrapper {
           position: relative;
           z-index: 10;
-          width: 100%;
-          height: 100%;
-          display: flex;
+          width: 100% !important;
+          height: 100% !important;
+          display: flex !important;
           align-items: center;
           justify-content: center;
           padding: 16px;
           gap: 24px;
-          box-sizing: border-box;
+          box-sizing: border-box !important;
         }
 
         /* Desktop Layout (>1024px) */
@@ -428,44 +428,44 @@ export default function Dashboard() {
         /* Tablet Layout (768px - 1024px) */
         @media (max-width: 1024px) {
           .panels-wrapper {
-            flex-direction: column;
-            gap: 16px;
-            padding: 12px;
+            flex-direction: column !important;
+            gap: 16px !important;
+            padding: 12px !important;
           }
           
           .left-panel,
           .right-panel {
-            width: min(95vw, 800px);
-            height: min(45vh, 400px);
-            padding: 24px;
+            width: min(95vw, 800px) !important;
+            height: min(45vh, 400px) !important;
+            padding: 24px !important;
           }
           
           .a4-page {
-            width: 95%;
-            height: 90%;
-            padding: 24px;
+            width: 95% !important;
+            height: 90% !important;
+            padding: 24px !important;
           }
         }
 
         /* Mobile Layout (<768px) */
         @media (max-width: 768px) {
           .panels-wrapper {
-            gap: 12px;
-            padding: 8px;
+            gap: 12px !important;
+            padding: 8px !important;
           }
           
           .left-panel,
           .right-panel {
-            width: 98vw;
-            height: min(42vh, 350px);
-            padding: 16px;
-            border-radius: 16px;
+            width: 98vw !important;
+            height: min(42vh, 350px) !important;
+            padding: 16px !important;
+            border-radius: 16px !important;
           }
           
           .a4-page {
-            width: 98%;
-            height: 95%;
-            padding: 16px;
+            width: 98% !important;
+            height: 95% !important;
+            padding: 16px !important;
           }
         }
 
@@ -475,6 +475,7 @@ export default function Dashboard() {
             min-height: 44px !important;
             padding: 12px 16px !important;
             font-size: 16px !important;
+            touch-action: manipulation !important;
           }
           
           input[type="file"] + button {
@@ -495,6 +496,13 @@ export default function Dashboard() {
           
           .mobile-small {
             font-size: 12px !important;
+          }
+        }
+
+        /* Additional responsive fixes */
+        @media (max-width: 1024px) {
+          * {
+            box-sizing: border-box !important;
           }
         }
       `}</style>
