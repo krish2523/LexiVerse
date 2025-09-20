@@ -9,18 +9,22 @@ function GLBModel(props) {
   let scene = null;
 
   try {
-    const gltf = useGLTF("/scales_of_justice.glb");
+    const gltf = useGLTF("/scales_of_justice.glb", true); // Add draco support
     scene = gltf.scene;
   } catch (error) {
     console.warn("GLB model failed to load:", error);
     if (!loadError) {
       setLoadError(true);
     }
+    // Call onError prop if provided
+    if (props.onError) {
+      props.onError(error);
+    }
   }
 
   // Add rotation animation (always call useFrame)
   useFrame(() => {
-    if (modelRef.current) {
+    if (modelRef.current && !loadError) {
       modelRef.current.rotation.y += 0.008;
     }
   });
@@ -28,30 +32,53 @@ function GLBModel(props) {
   // Ensure materials are properly set with marble white color
   React.useEffect(() => {
     if (scene && !loadError) {
-      scene.traverse((child) => {
-        if (child.isMesh) {
-          child.castShadow = true;
-          child.receiveShadow = true;
-          if (child.material) {
-            // Apply a high-contrast silver and gold color scheme
-            child.material = child.material.clone();
-            child.material.color.setHex(0xd4af37); // Gold color
-            child.material.roughness = 0.1;
-            child.material.metalness = 1.0;
-            child.material.transparent = false;
-            child.material.opacity = 1.0;
-            child.material.needsUpdate = true;
+      try {
+        scene.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            if (child.material) {
+              // Apply a high-contrast silver and gold color scheme
+              child.material = child.material.clone();
+              child.material.color.setHex(0xd4af37); // Gold color
+              child.material.roughness = 0.1;
+              child.material.metalness = 1.0;
+              child.material.transparent = false;
+              child.material.opacity = 1.0;
+              child.material.needsUpdate = true;
+            }
           }
+        });
+      } catch (error) {
+        console.warn("Error processing materials:", error);
+        setLoadError(true);
+        if (props.onError) {
+          props.onError(error);
         }
-      });
+      }
     }
-  }, [scene, loadError]);
+  }, [scene, loadError, props]);
 
   if (loadError || !scene) {
-    return null;
+    // Return a simple fallback instead of null
+    return (
+      <mesh {...props} ref={modelRef}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial color="#d4af37" metalness={0.8} roughness={0.2} />
+      </mesh>
+    );
   }
 
-  return <primitive ref={modelRef} object={scene.clone()} {...props} />;
+  try {
+    return <primitive ref={modelRef} object={scene.clone()} {...props} />;
+  } catch (error) {
+    console.warn("Error rendering primitive:", error);
+    setLoadError(true);
+    if (props.onError) {
+      props.onError(error);
+    }
+    return null;
+  }
 }
 
 function FallbackModel(props) {
