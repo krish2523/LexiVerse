@@ -21,7 +21,7 @@ app = FastAPI(
 allowed_origins = ["*"] if settings.DEBUG else [
     "http://localhost:3000",
     "http://localhost:3001", 
-    "https://yourdomain.com"
+    "https://lexi-verse.vercel.app"
 ]
 
 app.add_middleware(

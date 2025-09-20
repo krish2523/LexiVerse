@@ -3,6 +3,7 @@ import { Canvas } from "@react-three/fiber";
 import { ScalesOfJustice } from "./ScalesOfJustice";
 
 export default function Dashboard() {
+  const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:8000";
   const [uploadedFileName, setUploadedFileName] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [summary, setSummary] = useState("No document uploaded yet.");
@@ -75,11 +76,11 @@ export default function Dashboard() {
 
       // Fire both requests in parallel and wait for both to settle
       const [analyzeResult, initResult] = await Promise.allSettled([
-        fetch("http://localhost:8000/analyze-document", {
+        fetch(`${apiUrl}/analyze-document`, {
           method: "POST",
           body: analyzeFd,
         }),
-        fetch("http://localhost:8000/chat", { method: "POST", body: initFd }),
+        fetch(`${apiUrl}/chat`, { method: "POST", body: initFd }),
       ]);
 
       // Process analyzer response first (prefer this summary)
@@ -229,7 +230,8 @@ export default function Dashboard() {
       fd.append("message", text);
       if (documentId) fd.append("session_id", documentId);
 
-      const res = await fetch("http://localhost:8000/chat", {
+      const apiUrl = process.env.REACT_APP_API_URL;
+      const res = await fetch(`${apiUrl}/chat`, {
         method: "POST",
         body: fd,
       });
