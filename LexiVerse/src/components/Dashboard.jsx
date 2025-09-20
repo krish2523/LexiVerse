@@ -102,6 +102,7 @@ export default function Dashboard() {
 
   // 3D Model Error Boundary
   const [modelError, setModelError] = useState(false);
+  const [activeView, setActiveView] = useState("summary");
 
   // Legal quotes and facts for upload animation
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
@@ -633,6 +634,44 @@ export default function Dashboard() {
                 />
               </div>
 
+              {/* View Toggles */}
+              {uploadedFileName && !uploading && (
+                <div style={{ marginBottom: "20px", display: "flex", gap: "8px", borderBottom: "1px solid #e5e7eb" }}>
+                  <button
+                    onClick={() => setActiveView("summary")}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      padding: "8px 12px",
+                      cursor: "pointer",
+                      fontSize: "14px",
+                      fontWeight: activeView === "summary" ? "600" : "400",
+                      color: activeView === "summary" ? "#3b82f6" : "#6b7280",
+                      borderBottom: activeView === "summary" ? "2px solid #3b82f6" : "2px solid transparent",
+                      marginBottom: "-1px"
+                    }}
+                  >
+                    Summary
+                  </button>
+                  <button
+                    onClick={() => setActiveView("clauses")}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      padding: "8px 12px",
+                      cursor: "pointer",
+                      fontSize: "14px",
+                      fontWeight: activeView === "clauses" ? "600" : "400",
+                      color: activeView === "clauses" ? "#3b82f6" : "#6b7280",
+                      borderBottom: activeView === "clauses" ? "2px solid #3b82f6" : "2px solid transparent",
+                      marginBottom: "-1px"
+                    }}
+                  >
+                    Important Clauses
+                  </button>
+                </div>
+              )}
+
               {/* Upload Frame - only show when no document is uploaded */}
               {!uploadedFileName && (
                 <div style={{ marginBottom: "16px" }}>
@@ -780,77 +819,87 @@ export default function Dashboard() {
                   </div>
                 ) : summary && summary !== "No document uploaded yet." ? (
                   <div>
-                    <h4 style={{ margin: "0 0 8px 0", color: "#374151" }}>
-                      Summary
-                    </h4>
-                    <div
-                      style={{
-                        color: "#4b5563",
-                        fontSize: "14px",
-                        lineHeight: 1.6,
-                        whiteSpace: "pre-wrap",
-                        marginBottom: "12px",
-                      }}
-                    >
-                      {summary}
-                    </div>
-
-                    {/* Display Important Clauses */}
-                    {importantClauses && importantClauses.length > 0 && (
-                      <div style={{ marginTop: "16px" }}>
-                        <h5
-                          style={{
-                            color: "#1f2937",
-                            fontSize: "16px",
-                            fontWeight: "600",
-                            marginBottom: "12px",
-                            borderBottom: "2px solid #e5e7eb",
-                            paddingBottom: "6px",
-                          }}
-                        >
-                          📋 Important Clauses
-                        </h5>
+                    {activeView === 'summary' && (
+                      <div>
+                        <h4 style={{ margin: "0 0 8px 0", color: "#374151" }}>
+                          Summary
+                        </h4>
                         <div
                           style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "12px",
+                            color: "#4b5563",
+                            fontSize: "14px",
+                            lineHeight: 1.6,
+                            whiteSpace: "pre-wrap",
+                            marginBottom: "12px",
                           }}
                         >
-                          {importantClauses.map((clause, index) => (
-                            <div
-                              key={index}
+                          {summary}
+                        </div>
+                      </div>
+                    )}
+
+                    {activeView === 'clauses' && (
+                      <div>
+                        {/* Display Important Clauses */}
+                        {importantClauses && importantClauses.length > 0 ? (
+                          <div style={{ marginTop: "16px" }}>
+                            <h5
                               style={{
-                                backgroundColor: "#f8fafc",
-                                border: "1px solid #e2e8f0",
-                                borderRadius: "8px",
-                                padding: "12px",
-                                borderLeft: "4px solid #3b82f6",
+                                color: "#1f2937",
+                                fontSize: "16px",
+                                fontWeight: "600",
+                                marginBottom: "12px",
+                                borderBottom: "2px solid #e5e7eb",
+                                paddingBottom: "6px",
                               }}
                             >
-                              <div
-                                style={{
-                                  color: "#1e40af",
-                                  fontSize: "14px",
-                                  fontWeight: "600",
-                                  marginBottom: "6px",
-                                }}
-                              >
-                                Clause {index + 1}
-                              </div>
-                              <div
-                                style={{
-                                  color: "#374151",
-                                  fontSize: "13px",
-                                  lineHeight: 1.5,
-                                  whiteSpace: "pre-wrap",
-                                }}
-                              >
-                                {clause}
-                              </div>
+                              📋 Important Clauses
+                            </h5>
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "12px",
+                              }}
+                            >
+                              {importantClauses.map((clause, index) => (
+                                <div
+                                  key={index}
+                                  style={{
+                                    backgroundColor: "#f8fafc",
+                                    border: "1px solid #e2e8f0",
+                                    borderRadius: "8px",
+                                    padding: "12px",
+                                    borderLeft: "4px solid #3b82f6",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      color: "#1e40af",
+                                      fontSize: "14px",
+                                      fontWeight: "600",
+                                      marginBottom: "6px",
+                                    }}
+                                  >
+                                    Clause {index + 1}
+                                  </div>
+                                  <div
+                                    style={{
+                                      color: "#374151",
+                                      fontSize: "13px",
+                                      lineHeight: 1.5,
+                                      whiteSpace: "pre-wrap",
+                                    }}
+                                  >
+                                    {clause}
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        ) : (
+                          <p>No important clauses were identified.</p>
+                        )}
                       </div>
                     )}
 
@@ -894,6 +943,7 @@ export default function Dashboard() {
                         setSummary("No document uploaded yet.");
                         setUploadedFileName(null);
                         setDocumentId(null);
+                        setActiveView("summary");
                         try {
                           localStorage.removeItem("session_id");
                         } catch (e) {
