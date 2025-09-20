@@ -20,6 +20,46 @@ export default function Dashboard() {
   const fileInputRef = useRef(null);
   const chatContainerRef = useRef(null);
   const [showUploadHint, setShowUploadHint] = useState(false);
+  const [rawAnalyzeJson, setRawAnalyzeJson] = useState(null);
+  const [showAnalyzeDetails, setShowAnalyzeDetails] = useState(false);
+
+  // Legal quotes and facts for upload animation
+  const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
+  const legalQuotes = [
+    '⚖️ "The law is reason, free from passion." - Aristotle',
+    "📚 Fun Fact: The word 'attorney' comes from French 'attorne' meaning 'one appointed'",
+    '🏛️ "Justice delayed is justice denied." - William E. Gladstone',
+    "💡 Did you know? The first law school was established in Bologna, Italy in 1088",
+    '⚖️ "The good lawyer is not the man who has an eye to every side and angle..." - Ralph Waldo Emerson',
+    "📖 Fun Fact: A group of lawyers is called a 'disputation' or 'arguing'",
+    '🏛️ "Laws are like sausages, it is better not to see them being made." - Otto von Bismarck',
+    "💼 Did you know? The Bar exam got its name from the physical barrier in courtrooms",
+    '⚖️ "The first thing we do, let\'s kill all the lawyers." - Shakespeare (Henry VI)',
+    "🎯 Fun Fact: Legal documents average 15% longer today than they were 20 years ago",
+  ];
+
+  // load saved session id from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("session_id");
+      if (saved) setDocumentId(saved);
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  // Cycle through legal quotes during upload
+  useEffect(() => {
+    let interval;
+    if (uploading) {
+      interval = setInterval(() => {
+        setCurrentQuoteIndex((prev) => (prev + 1) % legalQuotes.length);
+      }, 4000); // Change quote every 4 seconds
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [uploading, legalQuotes.length]);
 
   // Upload file to backend and fetch summary (supports immediate summary or polling by taskId)
   const uploadFile = async (file) => {
@@ -27,43 +67,134 @@ export default function Dashboard() {
       setUploading(true);
       setUploadedFileName(file.name);
 
-      const fd = new FormData();
-      fd.append("file", file);
+      // Create two separate FormData objects — one for analysis, one for chat init
+      const analyzeFd = new FormData();
+      analyzeFd.append("file", file);
+      const initFd = new FormData();
+      initFd.append("file", file);
 
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(txt || res.statusText);
-      }
+      // Fire both requests in parallel and wait for both to settle
+      const [analyzeResult, initResult] = await Promise.allSettled([
+        fetch("http://localhost:8000/analyze-document", {
+          method: "POST",
+          body: analyzeFd,
+        }),
+        fetch("http://localhost:8000/chat", { method: "POST", body: initFd }),
+      ]);
 
-      const data = await res.json();
-      // If backend returns summary directly
-      if (data.summary) {
-        if (data.documentId) setDocumentId(data.documentId);
-        setSummary(data.summary);
-        return;
-      }
+      // Process analyzer response first (prefer this summary)
+      if (analyzeResult.status === "fulfilled") {
+        const analyzeRes = analyzeResult.value;
+        if (analyzeRes && analyzeRes.ok) {
+          const analyzeData = await analyzeRes.json();
+          console.log(
+            "FULL analyzeData response:",
+            JSON.stringify(analyzeData, null, 2)
+          );
+          console.log("analyzeData.summary:", analyzeData.summary);
+          console.log("analyzeData.decision:", analyzeData.decision);
 
-      // If backend returns a taskId, poll for result
-      if (data.taskId) {
-        // some backends may also return a documentId to reference the stored file
-        if (data.documentId) setDocumentId(data.documentId);
-        const taskId = data.taskId;
-        for (let i = 0; i < 30; i++) {
-          await new Promise((r) => setTimeout(r, 1000));
-          try {
-            const poll = await fetch(`/api/summary/${taskId}`);
-            if (!poll.ok) continue;
-            const dd = await poll.json();
-            if (dd.summary) {
-              if (dd.documentId) setDocumentId(dd.documentId);
-              setSummary(dd.summary);
-              break;
+          if (analyzeData.decision && analyzeData.decision === "reject") {
+            const reason =
+              analyzeData.reason || "Document rejected by analyzer.";
+            setSummary(`Rejected: ${reason}`);
+            const assistantMsg = {
+              id: Date.now() + Math.random(),
+              role: "assistant",
+              text: `Document rejected: ${reason}`,
+            };
+            setMessages((m) => [...m, assistantMsg]);
+            // still allow chat init response to set session_id below
+            try {
+              setRawAnalyzeJson(JSON.stringify(analyzeData, null, 2));
+            } catch (e) {
+              setRawAnalyzeJson(String(analyzeData));
             }
+          } else if (analyzeData.summary && analyzeData.summary.trim()) {
+            const s = analyzeData.summary;
+            const lowered = String(s).toLowerCase();
+            if (
+              lowered.includes("validation error") ||
+              lowered.includes("input should be a valid string") ||
+              lowered.includes("structured parsing failed")
+            ) {
+              try {
+                setRawAnalyzeJson(JSON.stringify(analyzeData, null, 2));
+              } catch (e) {
+                setRawAnalyzeJson(String(analyzeData));
+              }
+              setSummary(
+                "Document analysis returned an unexpected format. Please try again or view details."
+              );
+            } else {
+              setSummary(analyzeData.summary);
+              setRawAnalyzeJson(null);
+            }
+          } else {
+            try {
+              setRawAnalyzeJson(JSON.stringify(analyzeData, null, 2));
+            } catch (e) {
+              setRawAnalyzeJson(String(analyzeData));
+            }
+            setSummary(
+              `No summary in response. Backend returned an unexpected format. Please view details.`
+            );
+          }
+        } else {
+          // analyzer returned non-ok
+          try {
+            const txt = analyzeRes
+              ? await analyzeRes.text()
+              : "Analyzer request failed";
+            setSummary("Failed to analyze: " + txt);
           } catch (e) {
-            // ignore and continue polling
+            setSummary("Failed to analyze: unknown error");
           }
         }
+      } else {
+        setSummary(
+          "Analyzer request failed: " +
+            (analyzeResult.reason && analyzeResult.reason.message)
+        );
+      }
+
+      // Then process chat init result to persist session id
+      if (initResult.status === "fulfilled") {
+        const initRes = initResult.value;
+        if (initRes && initRes.ok) {
+          const initJson = await initRes.json();
+          console.log(
+            "FULL initJson response:",
+            JSON.stringify(initJson, null, 2)
+          );
+          console.log("initJson.session_id:", initJson.session_id);
+          console.log("initJson.response:", initJson.response);
+          if (initJson.session_id) {
+            setDocumentId(initJson.session_id);
+            try {
+              localStorage.setItem("session_id", initJson.session_id);
+            } catch (e) {
+              // ignore
+            }
+          }
+          // Only set summary from init if analyzer didn't provide one
+          if (
+            (!analyzeResult || analyzeResult.status !== "fulfilled") &&
+            initJson.response
+          ) {
+            setSummary(initJson.response);
+          }
+        } else {
+          // init returned non-ok — log
+          try {
+            const txt = initRes ? await initRes.text() : "Chat init failed";
+            console.warn("Chat init failed:", txt);
+          } catch (e) {
+            console.warn("Chat init failed with unknown error");
+          }
+        }
+      } else {
+        console.warn("Chat init request failed:", initResult.reason);
       }
     } catch (e) {
       setSummary("Failed to upload: " + e.message);
@@ -93,14 +224,19 @@ export default function Dashboard() {
     setChatInput("");
 
     try {
-      const res = await fetch("/api/chat", {
+      // send message + session_id via multipart/form-data to /chat
+      const fd = new FormData();
+      fd.append("message", text);
+      if (documentId) fd.append("session_id", documentId);
+
+      const res = await fetch("http://localhost:8000/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, documentId }),
+        body: fd,
       });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
-      const reply = data.reply || data.answer || data.response || "(no reply)";
+      const reply = data.response || data.reply || data.answer || "(no reply)";
+      if (data.session_id) setDocumentId(data.session_id);
       setMessages((m) =>
         m.map((it) => (it.id === placeholder.id ? { ...it, text: reply } : it))
       );
@@ -161,6 +297,10 @@ export default function Dashboard() {
     <div>
       {/* Modern Scroll Styling */}
       <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
         .modern-scroll {
           transition: box-shadow 0.3s ease, transform 0.1s ease;
         }
@@ -300,109 +440,155 @@ export default function Dashboard() {
                 />
               </div>
 
-              {/* Upload Frame */}
-              <div style={{ marginBottom: "16px" }}>
-                <div
-                  style={{
-                    border: "2px dashed #e5e7eb",
-                    borderRadius: "8px",
-                    padding: "18px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: "12px",
-                    backgroundColor: "#fff",
-                  }}
-                >
-                  <div style={{ textAlign: "left" }}>
-                    <div
-                      style={{
-                        fontSize: "14px",
-                        color: "#374151",
-                        fontWeight: 600,
-                      }}
-                    >
-                      Upload your PDF / DOCX
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "12px",
-                        color: "#6b7280",
-                        marginTop: "6px",
-                      }}
-                    >
-                      Drop a file here or click Attach to upload. We'll
-                      summarize it for you.
-                    </div>
-                  </div>
-
+              {/* Upload Frame - only show when no document is uploaded */}
+              {!uploadedFileName && (
+                <div style={{ marginBottom: "16px" }}>
                   <div
                     style={{
+                      border: "2px dashed #e5e7eb",
+                      borderRadius: "8px",
+                      padding: "18px",
                       display: "flex",
                       alignItems: "center",
-                      gap: "8px",
+                      justifyContent: "space-between",
+                      gap: "12px",
+                      backgroundColor: "#fff",
                     }}
                   >
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".pdf,.doc,.docx,.txt"
-                      onChange={handleFileChange}
-                      style={{ display: "none" }}
-                    />
-                    <button
-                      onClick={() =>
-                        fileInputRef.current && fileInputRef.current.click()
-                      }
+                    <div style={{ textAlign: "left" }}>
+                      <div
+                        style={{
+                          fontSize: "14px",
+                          color: "#374151",
+                          fontWeight: 600,
+                        }}
+                      >
+                        Upload your PDF / DOCX
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "12px",
+                          color: "#6b7280",
+                          marginTop: "6px",
+                        }}
+                      >
+                        Drop a file here or click Attach to upload. We'll
+                        summarize it for you.
+                      </div>
+                    </div>
+
+                    <div
                       style={{
-                        backgroundColor: "#2563eb",
-                        color: "white",
-                        border: "none",
-                        padding: "10px 14px",
-                        borderRadius: "8px",
-                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
                       }}
                     >
-                      Attach
-                    </button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".pdf,.doc,.docx,.txt"
+                        onChange={handleFileChange}
+                        style={{ display: "none" }}
+                        disabled={uploading}
+                      />
+                      <button
+                        onClick={() =>
+                          !uploading &&
+                          fileInputRef.current &&
+                          fileInputRef.current.click()
+                        }
+                        disabled={uploading}
+                        style={{
+                          backgroundColor: uploading ? "#94a3b8" : "#2563eb",
+                          color: "white",
+                          border: "none",
+                          padding: "10px 14px",
+                          borderRadius: "8px",
+                          cursor: uploading ? "not-allowed" : "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        {uploading ? (
+                          <>
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="white"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              style={{ animation: "spin 1s linear infinite" }}
+                            >
+                              <circle
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                strokeOpacity="0.25"
+                              />
+                              <path d="M22 12a10 10 0 0 1-10 10" />
+                            </svg>
+                            Uploading...
+                          </>
+                        ) : (
+                          "Attach"
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Summary Display */}
-              <div style={{ marginBottom: "12px" }}>
-                <h3 style={{ margin: "8px 0", color: "#374151" }}>Summary</h3>
-                <div
-                  style={{
-                    color: "#4b5563",
-                    fontSize: "14px",
-                    lineHeight: 1.6,
-                  }}
-                >
-                  {uploading
-                    ? "Uploading file and fetching summary..."
-                    : summary}
-                </div>
-              </div>
+              )}
 
               {/* Main Content: show backend summary when available */}
               <div style={{ marginBottom: "20px" }}>
                 {uploading ? (
-                  <p
+                  <div
                     style={{
                       color: "#4b5563",
                       lineHeight: "1.6",
                       fontSize: "14px",
                       margin: "0 0 16px 0",
-                      textAlign: "justify",
+                      textAlign: "center",
+                      padding: "20px",
+                      backgroundColor: "rgba(59, 130, 246, 0.1)",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(59, 130, 246, 0.2)",
                     }}
                   >
-                    Uploading file and fetching summary...
-                  </p>
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "#3b82f6",
+                        marginBottom: "12px",
+                        fontWeight: "600",
+                      }}
+                    >
+                      🔍 Analyzing your document...
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "13px",
+                        fontStyle: "italic",
+                        color: "#6b7280",
+                        minHeight: "40px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        transition: "opacity 0.3s ease-in-out",
+                      }}
+                    >
+                      {legalQuotes[currentQuoteIndex]}
+                    </div>
+                  </div>
                 ) : summary && summary !== "No document uploaded yet." ? (
                   <div>
                     <h4 style={{ margin: "0 0 8px 0", color: "#374151" }}>
-                      Summary (from backend)
+                      Summary
                     </h4>
                     <div
                       style={{
@@ -416,17 +602,59 @@ export default function Dashboard() {
                       {summary}
                     </div>
 
+                    {rawAnalyzeJson && (
+                      <div style={{ marginTop: "8px" }}>
+                        <button
+                          onClick={() => setShowAnalyzeDetails((s) => !s)}
+                          style={{
+                            background: "transparent",
+                            border: "1px dashed rgba(55,65,81,0.2)",
+                            color: "#6b7280",
+                            padding: "6px 10px",
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            fontSize: "12px",
+                          }}
+                        >
+                          {showAnalyzeDetails ? "Hide details" : "Show details"}
+                        </button>
+                        {showAnalyzeDetails && (
+                          <pre
+                            style={{
+                              marginTop: "8px",
+                              background: "#0f172a",
+                              color: "#e6eef8",
+                              padding: "12px",
+                              borderRadius: "8px",
+                              maxHeight: "240px",
+                              overflow: "auto",
+                              fontSize: "12px",
+                            }}
+                          >
+                            {rawAnalyzeJson}
+                          </pre>
+                        )}
+                      </div>
+                    )}
+
                     <button
                       onClick={() => {
                         setSummary("No document uploaded yet.");
                         setUploadedFileName(null);
                         setDocumentId(null);
+                        try {
+                          localStorage.removeItem("session_id");
+                        } catch (e) {
+                          // ignore
+                        }
                       }}
                       style={{
                         backgroundColor: "#2563eb",
                         color: "white",
                         border: "none",
                         padding: "8px 12px",
+                        marginTop: "12px", // add spacing from the text above
+                        marginLeft: "6px",
                         borderRadius: "8px",
                         cursor: "pointer",
                       }}
@@ -493,7 +721,7 @@ export default function Dashboard() {
           <div
             style={{
               width: "40%",
-              height: "95vh",
+              height: "730px",
               backgroundColor: "rgba(20, 20, 25, 0.05)",
               backdropFilter: "blur(2px)",
               border: "1px solid rgba(255, 255, 255, 0.2)",
@@ -609,11 +837,22 @@ export default function Dashboard() {
                       borderTopRightRadius:
                         msg.role === "user" ? "4px" : "16px",
                       maxWidth: "85%",
+                      maxWidth: "70%", // reduce bubble width for readability
+                      display: "inline-block",
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
                       color: msg.role === "user" ? "white" : "#e5e7eb",
+                      fontFamily:
+                        "Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial",
                     }}
                   >
                     <p
-                      style={{ margin: 0, fontSize: "14px", lineHeight: "1.5" }}
+                      style={{
+                        margin: 0,
+                        fontSize: "14px",
+                        lineHeight: "1.5",
+                        fontFamily: "inherit",
+                      }}
                     >
                       {msg.text}
                     </p>
@@ -669,6 +908,8 @@ export default function Dashboard() {
                     padding: "14px 60px 14px 16px",
                     color: "white",
                     fontSize: "14px",
+                    fontFamily:
+                      "Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial",
                     outline: "none",
                     boxSizing: "border-box",
                     maxWidth: "100%",
