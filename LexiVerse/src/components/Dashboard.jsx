@@ -4,7 +4,7 @@ import { ScalesOfJustice } from "./ScalesOfJustice";
 
 export default function Dashboard() {
   // Vite exposes environment variables via import.meta.env
-  const apiUrl = import.meta.env.REACT_APP_API_URL || "http://localhost:8000";
+  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
   // missing state vars (were accidentally removed) — restore them
   const [uploadedFileName, setUploadedFileName] = useState(null);
   const [uploading, setUploading] = useState(false);
