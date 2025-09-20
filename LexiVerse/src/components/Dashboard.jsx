@@ -216,7 +216,10 @@ export default function Dashboard() {
             setSummary(analyzeData.summary);
             setRawAnalyzeJson(null);
             // Store important clauses if available
-            if (analyzeData.important_clauses && Array.isArray(analyzeData.important_clauses)) {
+            if (
+              analyzeData.important_clauses &&
+              Array.isArray(analyzeData.important_clauses)
+            ) {
               setImportantClauses(analyzeData.important_clauses);
             } else {
               setImportantClauses([]);
@@ -807,11 +810,13 @@ export default function Dashboard() {
                         >
                           📋 Important Clauses
                         </h5>
-                        <div style={{ 
-                          display: "flex", 
-                          flexDirection: "column", 
-                          gap: "12px" 
-                        }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "12px",
+                          }}
+                        >
                           {importantClauses.map((clause, index) => (
                             <div
                               key={index}

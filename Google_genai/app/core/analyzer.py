@@ -54,13 +54,11 @@ class DocumentAnalyzer:
                - Notable limitations, exclusions, or special provisions
                Use clear, professional language that explains complex legal concepts in accessible terms.
 
-            4. Important Clauses: List 4-6 of the most critical clauses. For each clause, provide a detailed string explanation (100-200 words) that includes:
-               - The clause title/topic
-               - A brief excerpt of key text (in quotes)
-               - Plain language explanation of what it means
-               - Why it's important or what risks/benefits it presents
-               - Any recommended actions or considerations
-               Format each as a single comprehensive paragraph.
+            4. Important Clauses: List 4-6 of the most critical clauses. For each clause, provide a brief explanation (30-50 words) that includes:
+               - The clause title/topic in a few words
+               - What it means in simple terms
+               - Why it's important
+               Keep each clause explanation short, clear, and actionable.
 
             Document Text:
             {document_text}
