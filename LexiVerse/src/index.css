@@ -26,7 +26,9 @@ a:hover {
   color: #535bf2;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   width: 100%;
   margin: 0;

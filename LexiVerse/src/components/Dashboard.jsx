@@ -636,7 +636,14 @@ export default function Dashboard() {
 
               {/* View Toggles */}
               {uploadedFileName && !uploading && (
-                <div style={{ marginBottom: "20px", display: "flex", gap: "8px", borderBottom: "1px solid #e5e7eb" }}>
+                <div
+                  style={{
+                    marginBottom: "20px",
+                    display: "flex",
+                    gap: "8px",
+                    borderBottom: "1px solid #e5e7eb",
+                  }}
+                >
                   <button
                     onClick={() => setActiveView("summary")}
                     style={{
@@ -647,8 +654,11 @@ export default function Dashboard() {
                       fontSize: "14px",
                       fontWeight: activeView === "summary" ? "600" : "400",
                       color: activeView === "summary" ? "#3b82f6" : "#6b7280",
-                      borderBottom: activeView === "summary" ? "2px solid #3b82f6" : "2px solid transparent",
-                      marginBottom: "-1px"
+                      borderBottom:
+                        activeView === "summary"
+                          ? "2px solid #3b82f6"
+                          : "2px solid transparent",
+                      marginBottom: "-1px",
                     }}
                   >
                     Summary
@@ -663,8 +673,11 @@ export default function Dashboard() {
                       fontSize: "14px",
                       fontWeight: activeView === "clauses" ? "600" : "400",
                       color: activeView === "clauses" ? "#3b82f6" : "#6b7280",
-                      borderBottom: activeView === "clauses" ? "2px solid #3b82f6" : "2px solid transparent",
-                      marginBottom: "-1px"
+                      borderBottom:
+                        activeView === "clauses"
+                          ? "2px solid #3b82f6"
+                          : "2px solid transparent",
+                      marginBottom: "-1px",
                     }}
                   >
                     Important Clauses
@@ -819,7 +832,7 @@ export default function Dashboard() {
                   </div>
                 ) : summary && summary !== "No document uploaded yet." ? (
                   <div>
-                    {activeView === 'summary' && (
+                    {activeView === "summary" && (
                       <div>
                         <h4 style={{ margin: "0 0 8px 0", color: "#374151" }}>
                           Summary
@@ -838,7 +851,7 @@ export default function Dashboard() {
                       </div>
                     )}
 
-                    {activeView === 'clauses' && (
+                    {activeView === "clauses" && (
                       <div>
                         {/* Display Important Clauses */}
                         {importantClauses && importantClauses.length > 0 ? (

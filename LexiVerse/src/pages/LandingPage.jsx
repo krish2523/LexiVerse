@@ -24,8 +24,8 @@ const LandingPage = () => {
           <div className="text-content">
             <h2>Unlock the Power of Legal AI</h2>
             <p>
-              LexiVerse is a cutting-edge platform that leverages generative AI to
-              analyze, summarize, and chat with your legal documents. From
+              LexiVerse is a cutting-edge platform that leverages generative AI
+              to analyze, summarize, and chat with your legal documents. From
               complex contracts to lengthy court filings, get the insights you
               need in seconds.
             </p>
@@ -51,7 +51,11 @@ const LandingPage = () => {
               <Canvas camera={{ position: [0, 0, 3], fov: 50 }}>
                 <ambientLight intensity={2.5} />
                 <directionalLight position={[3, 3, 3]} intensity={2} />
-                <pointLight position={[0, 1, 2]} intensity={3} color="#e0dffc" />
+                <pointLight
+                  position={[0, 1, 2]}
+                  intensity={3}
+                  color="#e0dffc"
+                />
                 <ScalesOfJustice scale={0.35} position={[0, -0.5, 0]} />
               </Canvas>
             </Suspense>
