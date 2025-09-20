@@ -3,9 +3,12 @@ import { Canvas } from "@react-three/fiber";
 import { ScalesOfJustice } from "./ScalesOfJustice";
 
 export default function Dashboard() {
-  const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:8000";
+  // Vite exposes environment variables via import.meta.env
+  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  // missing state vars (were accidentally removed) — restore them
   const [uploadedFileName, setUploadedFileName] = useState(null);
   const [uploading, setUploading] = useState(false);
+
   const [summary, setSummary] = useState("No document uploaded yet.");
   const [documentId, setDocumentId] = useState(null);
 
@@ -347,75 +350,162 @@ export default function Dashboard() {
           transform: translateY(0px);
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
         }
+
+        /* Responsive Dashboard Layout */
+        .dashboard-container {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          width: 100vw;
+          height: 100vh;
+          background: linear-gradient(180deg, #1e1b4b 0%, #0c0a1d 100%);
+          overflow: hidden;
+          box-sizing: border-box;
+        }
+
+        .panels-wrapper {
+          position: relative;
+          z-index: 10;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+          gap: 24px;
+          box-sizing: border-box;
+        }
+
+        /* Desktop Layout (>1024px) */
+        .left-panel {
+          width: 500px;
+          height: 720px;
+          background-color: rgba(20, 20, 25, 0.05);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 24px;
+          padding: 40px;
+          color: white;
+          overflow: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-sizing: border-box;
+        }
+
+        .right-panel {
+          width: 700px;
+          height: 720px;
+          background-color: rgba(20, 20, 25, 0.05);
+          backdrop-filter: blur(2px);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 24px;
+          color: white;
+          display: flex;
+          flex-direction: column;
+          box-sizing: border-box;
+        }
+
+        .a4-page {
+          width: 420px;
+          height: 650px;
+          background-color: rgba(255, 255, 255, 0.95);
+          padding: 40px;
+          border-radius: 0px;
+          color: #1f2937;
+          overflow: auto;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+          margin: auto;
+          position: relative;
+          scroll-behavior: smooth;
+          scrollbar-width: thin;
+          scrollbar-color: #cbd5e1 transparent;
+          box-sizing: border-box;
+        }
+
+        /* Tablet Layout (768px - 1024px) */
+        @media (max-width: 1024px) {
+          .panels-wrapper {
+            flex-direction: column;
+            gap: 16px;
+            padding: 12px;
+          }
+          
+          .left-panel,
+          .right-panel {
+            width: min(95vw, 800px);
+            height: min(45vh, 400px);
+            padding: 24px;
+          }
+          
+          .a4-page {
+            width: 95%;
+            height: 90%;
+            padding: 24px;
+          }
+        }
+
+        /* Mobile Layout (<768px) */
+        @media (max-width: 768px) {
+          .panels-wrapper {
+            gap: 12px;
+            padding: 8px;
+          }
+          
+          .left-panel,
+          .right-panel {
+            width: 98vw;
+            height: min(42vh, 350px);
+            padding: 16px;
+            border-radius: 16px;
+          }
+          
+          .a4-page {
+            width: 98%;
+            height: 95%;
+            padding: 16px;
+          }
+        }
+
+        /* Touch-friendly buttons */
+        @media (max-width: 768px) {
+          button {
+            min-height: 44px !important;
+            padding: 12px 16px !important;
+            font-size: 16px !important;
+          }
+          
+          input[type="file"] + button {
+            min-height: 48px !important;
+          }
+        }
+
+        /* Mobile typography adjustments */
+        @media (max-width: 768px) {
+          .mobile-title {
+            font-size: 20px !important;
+          }
+          
+          .mobile-text {
+            font-size: 14px !important;
+            line-height: 1.5 !important;
+          }
+          
+          .mobile-small {
+            font-size: 12px !important;
+          }
+        }
       `}</style>
 
-      <div
-        style={{
-          width: "100vw",
-          height: "100vh",
-          background: "linear-gradient(180deg, #1e1b4b 0%, #0c0a1d 100%)",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
+      <div className="dashboard-container">
         {/* UI Panels */}
-        <div
-          style={{
-            position: "relative",
-            zIndex: 10,
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "16px",
-            gap: "24px",
-          }}
-        >
+        <div className="panels-wrapper">
           {/* Left Panel - Document Summary */}
-          <div
-            style={{
-              width: "480px", // Slightly wider to accommodate A4 + padding
-              height: "650px", // Taller to accommodate A4 + padding
-              maxWidth: "48%", // Responsive fallback
-              maxHeight: "90%", // Responsive fallback
-              backgroundColor: "rgba(20, 20, 25, 0.05)",
-              backdropFilter: "blur(10px)",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
-              borderRadius: "24px",
-              padding: "40px", // Increased padding for better A4 spacing
-
-              color: "white",
-              overflow: "hidden",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
+          <div className="left-panel">
             {/* White A4 Page Content Box */}
-            <div
-              style={{
-                width: "400px",
-                height: "566px", // A4 ratio: 400 * 1.414 = ~566px
-                maxWidth: "90%",
-                maxHeight: "90%",
-                backgroundColor: "rgba(255, 255, 255, 0.95)",
-                padding: "40px",
-                paddingRight: "48px",
-                paddingLeft: "40px",
-                borderRadius: "0px",
-                color: "#1f2937",
-                overflow: "auto",
-                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.15)",
-                margin: "auto",
-                position: "relative",
-                scrollBehavior: "smooth",
-                // Modern scrollbar styling
-                scrollbarWidth: "thin",
-                scrollbarColor: "#cbd5e1 transparent",
-              }}
-              className="modern-scroll"
-            >
+            <div className="a4-page modern-scroll">
               {/* Document Header */}
               <div
                 style={{
@@ -429,6 +519,7 @@ export default function Dashboard() {
                     margin: "0 0 16px 0",
                     color: "#374151",
                   }}
+                  className="mobile-title"
                 >
                   Intelligent Summary View
                 </h1>
@@ -720,19 +811,7 @@ export default function Dashboard() {
           </div>
 
           {/* Right Panel - RAG Chatbot */}
-          <div
-            style={{
-              width: "40%",
-              height: "730px",
-              backgroundColor: "rgba(20, 20, 25, 0.05)",
-              backdropFilter: "blur(2px)",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
-              borderRadius: "24px",
-              color: "white",
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
+          <div className="right-panel">
             {/* Header */}
             <div
               style={{
@@ -751,10 +830,14 @@ export default function Dashboard() {
                     margin: "0 0 8px 0",
                     color: "white",
                   }}
+                  className="mobile-title"
                 >
                   Document Assistant
                 </h2>
-                <p style={{ fontSize: "14px", color: "#9ca3af", margin: 0 }}>
+                <p
+                  style={{ fontSize: "14px", color: "#9ca3af", margin: 0 }}
+                  className="mobile-text"
+                >
                   Ask questions about your uploaded PDF document
                 </p>
                 {uploadedFileName && (
@@ -764,6 +847,7 @@ export default function Dashboard() {
                       color: "#9ca3af",
                       marginTop: "6px",
                     }}
+                    className="mobile-small"
                   >
                     Uploaded: {uploadedFileName}
                   </div>
@@ -838,7 +922,7 @@ export default function Dashboard() {
                         msg.role === "assistant" ? "4px" : "16px",
                       borderTopRightRadius:
                         msg.role === "user" ? "4px" : "16px",
-                      
+
                       maxWidth: "70%", // reduce bubble width for readability
                       display: "inline-block",
                       whiteSpace: "pre-wrap",
