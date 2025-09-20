@@ -50,7 +50,7 @@ class DocumentAnalyzer:
                - Plain language explanation of what it means
                - Why it's important or what risks/benefits it presents
                - Any recommended actions or considerations
-               Format each as a single comprehensive paragraph.
+               Format each as a single comrehensive paragraph.
 
             Document Text:
             {document_text}

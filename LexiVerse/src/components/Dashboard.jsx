@@ -836,7 +836,7 @@ export default function Dashboard() {
                         msg.role === "assistant" ? "4px" : "16px",
                       borderTopRightRadius:
                         msg.role === "user" ? "4px" : "16px",
-                      maxWidth: "85%",
+                      
                       maxWidth: "70%", // reduce bubble width for readability
                       display: "inline-block",
                       whiteSpace: "pre-wrap",
