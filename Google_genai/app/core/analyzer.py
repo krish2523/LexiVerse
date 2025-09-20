@@ -54,16 +54,25 @@ class DocumentAnalyzer:
                - Notable limitations, exclusions, or special provisions
                Use clear, professional language that explains complex legal concepts in accessible terms.
 
-            4. Important Clauses: List 4-6 of the most critical clauses. For each clause, provide a brief explanation (30-50 words) that includes:
-               - The clause title/topic in a few words
+            4. Important Clauses: List 4-6 of the most critical clauses as simple strings. Each clause should be a concise description (30-50 words) that includes:
+               - The clause title/topic
                - What it means in simple terms
                - Why it's important
-               Keep each clause explanation short, clear, and actionable.
+               Return each clause as a single string, not as an object.
+
+            Example format for important_clauses:
+            [
+              "Services & Deliverables: Defines the specific services to be provided and deliverables expected from each party",
+              "Payment Terms: Outlines payment schedule, amounts, and conditions for compensation",
+              "Termination: Specifies conditions under which the agreement can be ended by either party",
+              "Confidentiality: Protects sensitive information shared between parties"
+            ]
 
             Document Text:
             {document_text}
 
             Return your analysis with the exact structure expected by the system, ensuring all fields are properly filled.
+            IMPORTANT: The important_clauses field must be an array of strings, not objects. Each string should be a complete clause description.
             """
             
             messages = [{"role": "user", "content": prompt}]

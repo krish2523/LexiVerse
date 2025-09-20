@@ -1,9 +1,17 @@
 import React from "react";
-
-import Dashboard from "./components/Dashboard";  
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import LandingPage from "./pages/LandingPage";
+import Dashboard from "./components/Dashboard";
 
 function App() {
-  return <Dashboard />;
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+      </Routes>
+    </Router>
+  );
 }
 
 export default App;
