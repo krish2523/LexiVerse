@@ -13,7 +13,11 @@ export default function DashboardPage() {
 
   const [chatInput, setChatInput] = useState("");
   const [messages, setMessages] = useState([
-    { id: 0, role: "assistant", text: "Hello! I'm your document assistant. Upload a file to get started." },
+    {
+      id: 0,
+      role: "assistant",
+      text: "Hello! I'm your document assistant. Upload a file to get started.",
+    },
   ]);
 
   const fileInputRef = useRef(null);
@@ -42,7 +46,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let interval;
-    if (uploading) interval = setInterval(() => setCurrentQuoteIndex((p) => (p + 1) % legalQuotes.length), 4000);
+    if (uploading)
+      interval = setInterval(
+        () => setCurrentQuoteIndex((p) => (p + 1) % legalQuotes.length),
+        4000
+      );
     return () => interval && clearInterval(interval);
   }, [uploading]);
 
@@ -56,19 +64,33 @@ export default function DashboardPage() {
       const analyzeFd = new FormData();
       analyzeFd.append("file", file);
 
-      const analyzeRes = await fetch(`${apiUrl}/analyze-document`, { method: "POST", body: analyzeFd });
+      const analyzeRes = await fetch(`${apiUrl}/analyze-document`, {
+        method: "POST",
+        body: analyzeFd,
+      });
       if (analyzeRes && analyzeRes.ok) {
         const analyzeData = await analyzeRes.json();
         console.log("FULL analyzeData response:", analyzeData);
 
-        const isRejected = analyzeData.decision && ["reject", "rejected", "rejection"].includes(String(analyzeData.decision).toLowerCase());
+        const isRejected =
+          analyzeData.decision &&
+          ["reject", "rejected", "rejection"].includes(
+            String(analyzeData.decision).toLowerCase()
+          );
 
         if (isRejected || analyzeData.reason) {
           const reason = analyzeData.reason || "Document rejected by analyzer.";
           setSummary(reason);
-          setMessages((m) => [...m, { id: Date.now() + Math.random(), role: "assistant", text: reason }]);
+          setMessages((m) => [
+            ...m,
+            { id: Date.now() + Math.random(), role: "assistant", text: reason },
+          ]);
           setTimeout(() => {
-            try { setRawAnalyzeJson(JSON.stringify(analyzeData, null, 2)); } catch (e) { setRawAnalyzeJson(String(analyzeData)); }
+            try {
+              setRawAnalyzeJson(JSON.stringify(analyzeData, null, 2));
+            } catch (e) {
+              setRawAnalyzeJson(String(analyzeData));
+            }
           }, 0);
           return;
         }
@@ -76,47 +98,103 @@ export default function DashboardPage() {
         if (analyzeData.summary && analyzeData.summary.trim()) {
           const s = analyzeData.summary;
           const lowered = String(s).toLowerCase();
-          if (lowered.includes("validation error") || lowered.includes("input should be a valid string") || lowered.includes("structured parsing failed")) {
-            setTimeout(() => { try { setRawAnalyzeJson(JSON.stringify(analyzeData, null, 2)); } catch (e) { setRawAnalyzeJson(String(analyzeData)); } }, 0);
-            setSummary("Document analysis returned an unexpected format. Please try again or view details.");
+          if (
+            lowered.includes("validation error") ||
+            lowered.includes("input should be a valid string") ||
+            lowered.includes("structured parsing failed")
+          ) {
+            setTimeout(() => {
+              try {
+                setRawAnalyzeJson(JSON.stringify(analyzeData, null, 2));
+              } catch (e) {
+                setRawAnalyzeJson(String(analyzeData));
+              }
+            }, 0);
+            setSummary(
+              "Document analysis returned an unexpected format. Please try again or view details."
+            );
           } else {
             setSummary(analyzeData.summary);
             setRawAnalyzeJson(null);
-            if (analyzeData.important_clauses && Array.isArray(analyzeData.important_clauses)) setImportantClauses(analyzeData.important_clauses);
+            if (
+              analyzeData.important_clauses &&
+              Array.isArray(analyzeData.important_clauses)
+            )
+              setImportantClauses(analyzeData.important_clauses);
             else setImportantClauses([]);
           }
         } else {
-          if (analyzeData.reason) setSummary(`Analysis issue: ${analyzeData.reason}`);
+          if (analyzeData.reason)
+            setSummary(`Analysis issue: ${analyzeData.reason}`);
           else if (analyzeData.error) setSummary(`Error: ${analyzeData.error}`);
-          else if (analyzeData.message) setSummary(`Message: ${analyzeData.message}`);
-          else setSummary(`No summary in response. Backend returned an unexpected format. Please view details.`);
-          setTimeout(() => { try { setRawAnalyzeJson(JSON.stringify(analyzeData, null, 2)); } catch (e) { setRawAnalyzeJson(String(analyzeData)); } }, 0);
+          else if (analyzeData.message)
+            setSummary(`Message: ${analyzeData.message}`);
+          else
+            setSummary(
+              `No summary in response. Backend returned an unexpected format. Please view details.`
+            );
+          setTimeout(() => {
+            try {
+              setRawAnalyzeJson(JSON.stringify(analyzeData, null, 2));
+            } catch (e) {
+              setRawAnalyzeJson(String(analyzeData));
+            }
+          }, 0);
         }
       } else {
-        try { const txt = analyzeRes ? await analyzeRes.text() : "Analyzer request failed"; setSummary("Failed to analyze: " + txt); } catch (e) { setSummary("Failed to analyze: unknown error"); }
+        try {
+          const txt = analyzeRes
+            ? await analyzeRes.text()
+            : "Analyzer request failed";
+          setSummary("Failed to analyze: " + txt);
+        } catch (e) {
+          setSummary("Failed to analyze: unknown error");
+        }
       }
 
       const initFd = new FormData();
       initFd.append("file", file);
       try {
-        const initRes = await fetch(`${apiUrl}/chat`, { method: "POST", body: initFd });
+        const initRes = await fetch(`${apiUrl}/chat`, {
+          method: "POST",
+          body: initFd,
+        });
         if (initRes && initRes.ok) {
           const initJson = await initRes.json();
           if (initJson.session_id) {
             setDocumentId(initJson.session_id);
-            try { localStorage.setItem("session_id", initJson.session_id); } catch (e) {}
+            try {
+              localStorage.setItem("session_id", initJson.session_id);
+            } catch (e) {}
           }
         } else {
-          try { const txt = initRes ? await initRes.text() : "Chat init failed"; console.warn("Chat init failed:", txt); } catch (e) { console.warn("Chat init failed with unknown error"); }
+          try {
+            const txt = initRes ? await initRes.text() : "Chat init failed";
+            console.warn("Chat init failed:", txt);
+          } catch (e) {
+            console.warn("Chat init failed with unknown error");
+          }
         }
-      } catch (e) { console.warn("Chat init request failed:", e); }
-    } catch (e) { setSummary("Failed to upload: " + e.message); } finally { setUploading(false); }
+      } catch (e) {
+        console.warn("Chat init request failed:", e);
+      }
+    } catch (e) {
+      setSummary("Failed to upload: " + e.message);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleFileChange = (e) => {
     const file = e.target.files && e.target.files[0];
     if (file) {
-      setMessages([{ id: 0, role: "assistant", text: "Hello! I'm your document assistant. Upload a file to get started." }]);
+      setMessages([
+        {
+          id: 0,
+          role: "assistant",
+          text: "Hello! I'm your document assistant. Upload a file to get started.",
+        },
+      ]);
       setDocumentId(null);
       setChatInput("");
       setSummary("No document uploaded yet.");
@@ -133,13 +211,22 @@ export default function DashboardPage() {
     const userMsg = { id: Date.now() + Math.random(), role: "user", text };
     setMessages((m) => [...m, userMsg]);
 
-    const placeholder = { id: Date.now() + Math.random(), role: "assistant", text: "...", animating: true };
+    const placeholder = {
+      id: Date.now() + Math.random(),
+      role: "assistant",
+      text: "...",
+      animating: true,
+    };
     setMessages((m) => [...m, placeholder]);
 
     let ellipsisIndex = 0;
     const ellipsisInterval = setInterval(() => {
       const dots = ".".repeat((ellipsisIndex % 3) + 1);
-      setMessages((msgs) => msgs.map((it) => (it.id === placeholder.id ? { ...it, text: dots } : it)));
+      setMessages((msgs) =>
+        msgs.map((it) =>
+          it.id === placeholder.id ? { ...it, text: dots } : it
+        )
+      );
       ellipsisIndex += 1;
     }, 400);
 
@@ -161,13 +248,23 @@ export default function DashboardPage() {
       const words = String(reply).split(/(\s+)/);
       let idx = 0;
       const revealInterval = setInterval(() => {
-        setMessages((msgs) => msgs.map((it) => (it.id !== placeholder.id ? it : { ...it, text: words.slice(0, idx + 1).join("") })));
+        setMessages((msgs) =>
+          msgs.map((it) =>
+            it.id !== placeholder.id
+              ? it
+              : { ...it, text: words.slice(0, idx + 1).join("") }
+          )
+        );
         idx += 1;
         if (idx >= words.length) clearInterval(revealInterval);
       }, 40);
     } catch (e) {
       clearInterval(ellipsisInterval);
-      setMessages((m) => m.map((it) => (it.id === placeholder.id ? { ...it, text: "Error: " + e.message } : it)));
+      setMessages((m) =>
+        m.map((it) =>
+          it.id === placeholder.id ? { ...it, text: "Error: " + e.message } : it
+        )
+      );
     }
   };
 
@@ -177,12 +274,20 @@ export default function DashboardPage() {
       if (uploading || !documentId) {
         const text = chatInput && chatInput.trim();
         if (text) {
-          const userMsg = { id: Date.now() + Math.random(), role: "user", text };
+          const userMsg = {
+            id: Date.now() + Math.random(),
+            role: "user",
+            text,
+          };
           setMessages((m) => [...m, userMsg]);
           setChatInput("");
         }
 
-        const hint = { id: Date.now() + Math.random(), role: "assistant", text: "Please upload a document first so I can answer questions about it." };
+        const hint = {
+          id: Date.now() + Math.random(),
+          role: "assistant",
+          text: "Please upload a document first so I can answer questions about it.",
+        };
         setMessages((m) => [...m, hint]);
         setShowUploadHint(true);
         setTimeout(() => setShowUploadHint(false), 3500);
@@ -193,7 +298,12 @@ export default function DashboardPage() {
     }
   };
 
-  useEffect(() => { try { const el = chatContainerRef.current; if (el) el.scrollTop = el.scrollHeight; } catch (e) {} }, [messages]);
+  useEffect(() => {
+    try {
+      const el = chatContainerRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    } catch (e) {}
+  }, [messages]);
 
   return (
     <div>
@@ -404,47 +514,47 @@ export default function DashboardPage() {
         }
       `}</style>
 
-    <div className="dashboard-container">
-      <div className="panels-wrapper">
-        <LeftPanel
-          uploadedFileName={uploadedFileName}
-          uploading={uploading}
-          summary={summary}
-          importantClauses={importantClauses}
-          activeView={activeView}
-          setActiveView={setActiveView}
-          fileInputRef={fileInputRef}
-          handleFileChange={handleFileChange}
-          legalQuotes={legalQuotes}
-          currentQuoteIndex={currentQuoteIndex}
-          showUploadHint={showUploadHint}
-          rawAnalyzeJson={rawAnalyzeJson}
-          showAnalyzeDetails={showAnalyzeDetails}
-          setShowAnalyzeDetails={setShowAnalyzeDetails}
-          setSummary={setSummary}
-          setUploadedFileName={setUploadedFileName}
-          setDocumentId={setDocumentId}
-          setImportantClauses={setImportantClauses}
-        />
+      <div className="dashboard-container">
+        <div className="panels-wrapper">
+          <LeftPanel
+            uploadedFileName={uploadedFileName}
+            uploading={uploading}
+            summary={summary}
+            importantClauses={importantClauses}
+            activeView={activeView}
+            setActiveView={setActiveView}
+            fileInputRef={fileInputRef}
+            handleFileChange={handleFileChange}
+            legalQuotes={legalQuotes}
+            currentQuoteIndex={currentQuoteIndex}
+            showUploadHint={showUploadHint}
+            rawAnalyzeJson={rawAnalyzeJson}
+            showAnalyzeDetails={showAnalyzeDetails}
+            setShowAnalyzeDetails={setShowAnalyzeDetails}
+            setSummary={setSummary}
+            setUploadedFileName={setUploadedFileName}
+            setDocumentId={setDocumentId}
+            setImportantClauses={setImportantClauses}
+          />
 
-        <RightPanel
-          uploadedFileName={uploadedFileName}
-          documentId={documentId}
-          messages={messages}
-          chatContainerRef={chatContainerRef}
-          chatInput={chatInput}
-          setChatInput={setChatInput}
-          handleChatKeyDown={handleChatKeyDown}
-          sendMessage={sendMessage}
-          uploading={uploading}
-          setMessages={setMessages}
-          setShowUploadHint={setShowUploadHint}
-          setDocumentId={setDocumentId}
-          modelError={modelError}
-          setModelError={setModelError}
-        />
+          <RightPanel
+            uploadedFileName={uploadedFileName}
+            documentId={documentId}
+            messages={messages}
+            chatContainerRef={chatContainerRef}
+            chatInput={chatInput}
+            setChatInput={setChatInput}
+            handleChatKeyDown={handleChatKeyDown}
+            sendMessage={sendMessage}
+            uploading={uploading}
+            setMessages={setMessages}
+            setShowUploadHint={setShowUploadHint}
+            setDocumentId={setDocumentId}
+            modelError={modelError}
+            setModelError={setModelError}
+          />
+        </div>
       </div>
-    </div>
     </div>
   );
 }
