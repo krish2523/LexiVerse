@@ -214,6 +214,23 @@ export default function LeftPanel(props) {
                 border: "1px solid rgba(59, 130, 246, 0.2)",
               }}
             >
+              {/* Framed notice: informs the user about expected wait time for summary */}
+              <div
+                style={{
+                  marginBottom: "12px",
+                  padding: "8px 12px",
+                  borderRadius: "8px",
+                  background: "rgba(255,243,205,0.9)",
+                  border: "1px solid rgba(245,158,11,0.2)",
+                  color: "#92400e",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                }}
+              >
+                Heads up: it may take about 30–40 seconds for the summary to
+                appear.
+              </div>
+
               <div
                 style={{
                   fontSize: "12px",
