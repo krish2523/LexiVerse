@@ -227,7 +227,7 @@ export default function LeftPanel(props) {
                   fontWeight: 600,
                 }}
               >
-                Heads up: it may take about 30–40 seconds for the summary to
+                Heads up: it may take about 20–30 seconds for the summary to
                 appear.
               </div>
 
