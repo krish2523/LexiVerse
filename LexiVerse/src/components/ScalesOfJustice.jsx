@@ -6,21 +6,12 @@ function GLBModel(props) {
   const modelRef = useRef();
   const [loadError, setLoadError] = useState(false);
 
-  let scene = null;
-
-  try {
-    const gltf = useGLTF("/scales_of_justice.glb", true); // Add draco support
-    scene = gltf.scene;
-  } catch (error) {
-    console.warn("GLB model failed to load:", error);
-    if (!loadError) {
-      setLoadError(true);
-    }
-    // Call onError prop if provided
-    if (props.onError) {
-      props.onError(error);
-    }
-  }
+  // Call the hook directly. It will suspend (throw a Promise) while loading and
+  // React Suspense will show the fallback. Do NOT wrap useGLTF in try/catch —
+  // catching the thrown Promise breaks Suspense and leads to confusing console
+  // messages like 'Promise [[PromiseResult]]: undefined'.
+  const gltf = useGLTF("/scales_of_justice.glb");
+  const scene = gltf ? gltf.scene : null;
 
   // Add rotation animation (always call useFrame)
   useFrame(() => {
