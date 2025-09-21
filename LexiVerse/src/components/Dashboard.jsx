@@ -163,10 +163,8 @@ export default function Dashboard() {
       // Process analyzer response first
       if (analyzeRes && analyzeRes.ok) {
         const analyzeData = await analyzeRes.json();
-        console.log(
-          "FULL analyzeData response:",
-          JSON.stringify(analyzeData, null, 2)
-        );
+        // Log the object reference to avoid expensive synchronous stringify
+        console.log("FULL analyzeData response:", analyzeData);
         console.log("analyzeData.summary:", analyzeData.summary);
         console.log("analyzeData.decision:", analyzeData.decision);
         console.log("analyzeData.reason:", analyzeData.reason);
@@ -190,11 +188,14 @@ export default function Dashboard() {
             text: reason,
           };
           setMessages((m) => [...m, assistantMsg]);
-          try {
-            setRawAnalyzeJson(JSON.stringify(analyzeData, null, 2));
-          } catch (e) {
-            setRawAnalyzeJson(String(analyzeData));
-          }
+          // Defer heavy stringify and state update to allow React to render the summary
+          setTimeout(() => {
+            try {
+              setRawAnalyzeJson(JSON.stringify(analyzeData, null, 2));
+            } catch (e) {
+              setRawAnalyzeJson(String(analyzeData));
+            }
+          }, 0);
           // Don't initialize chat for rejected documents
           return;
         } else if (analyzeData.summary && analyzeData.summary.trim()) {
@@ -205,11 +206,14 @@ export default function Dashboard() {
             lowered.includes("input should be a valid string") ||
             lowered.includes("structured parsing failed")
           ) {
-            try {
-              setRawAnalyzeJson(JSON.stringify(analyzeData, null, 2));
-            } catch (e) {
-              setRawAnalyzeJson(String(analyzeData));
-            }
+            // Defer heavy stringify and state update to avoid blocking the UI
+            setTimeout(() => {
+              try {
+                setRawAnalyzeJson(JSON.stringify(analyzeData, null, 2));
+              } catch (e) {
+                setRawAnalyzeJson(String(analyzeData));
+              }
+            }, 0);
             setSummary(
               "Document analysis returned an unexpected format. Please try again or view details."
             );
@@ -239,11 +243,14 @@ export default function Dashboard() {
               `No summary in response. Backend returned an unexpected format. Please view details.`
             );
           }
-          try {
-            setRawAnalyzeJson(JSON.stringify(analyzeData, null, 2));
-          } catch (e) {
-            setRawAnalyzeJson(String(analyzeData));
-          }
+          // Defer heavy stringify and state update to avoid blocking the UI
+          setTimeout(() => {
+            try {
+              setRawAnalyzeJson(JSON.stringify(analyzeData, null, 2));
+            } catch (e) {
+              setRawAnalyzeJson(String(analyzeData));
+            }
+          }, 0);
         }
       } else {
         // analyzer returned non-ok
@@ -303,7 +310,25 @@ export default function Dashboard() {
 
   const handleFileChange = (e) => {
     const file = e.target.files && e.target.files[0];
-    if (file) uploadFile(file);
+    if (file) {
+      // Immediately refresh chat and analysis state when a new file is selected
+      setMessages([
+        {
+          id: 0,
+          role: "assistant",
+          text: "Hello! I'm your document assistant. Upload a file to get started.",
+        },
+      ]);
+      setDocumentId(null);
+      setChatInput("");
+      setSummary("No document uploaded yet.");
+      setImportantClauses([]);
+      setRawAnalyzeJson(null);
+      setShowAnalyzeDetails(false);
+
+      // Start upload after resetting chat
+      uploadFile(file);
+    }
   };
 
   const sendMessage = async (text) => {
@@ -311,12 +336,24 @@ export default function Dashboard() {
     const userMsg = { id: Date.now() + Math.random(), role: "user", text };
     setMessages((m) => [...m, userMsg]);
 
+    // Create a placeholder assistant message that will animate while fetching
     const placeholder = {
       id: Date.now() + Math.random(),
       role: "assistant",
-      text: "Fetching answer...",
+      text: "...",
+      animating: true, // flag to indicate animated placeholder
     };
     setMessages((m) => [...m, placeholder]);
+
+    // Start a simple ellipsis animation for the fetching placeholder
+    let ellipsisIndex = 0;
+    const ellipsisInterval = setInterval(() => {
+      const dots = ".".repeat((ellipsisIndex % 3) + 1); // cycles ".", "..", "..."
+      setMessages((msgs) =>
+        msgs.map((it) => (it.id === placeholder.id ? { ...it, text: dots } : it))
+      );
+      ellipsisIndex += 1;
+    }, 400);
 
     // clear input immediately so user sees their message was sent
     setChatInput("");
@@ -335,10 +372,29 @@ export default function Dashboard() {
       const data = await res.json();
       const reply = data.response || data.reply || data.answer || "(no reply)";
       if (data.session_id) setDocumentId(data.session_id);
-      setMessages((m) =>
-        m.map((it) => (it.id === placeholder.id ? { ...it, text: reply } : it))
-      );
+
+      // Stop the fetching animation
+      clearInterval(ellipsisInterval);
+
+      // Animate assistant reply word-by-word by updating the placeholder message
+      const words = String(reply).split(/(\s+)/); // keep spaces
+      let idx = 0;
+
+      const revealInterval = setInterval(() => {
+        setMessages((msgs) =>
+          msgs.map((it) => {
+            if (it.id !== placeholder.id) return it;
+            const nextText = words.slice(0, idx + 1).join("");
+            return { ...it, text: nextText };
+          })
+        );
+        idx += 1;
+        if (idx >= words.length) {
+          clearInterval(revealInterval);
+        }
+      }, 40); // 40ms per word/chunk - feels like typing
     } catch (e) {
+      clearInterval(ellipsisInterval);
       setMessages((m) =>
         m.map((it) =>
           it.id === placeholder.id ? { ...it, text: "Error: " + e.message } : it
