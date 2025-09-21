@@ -350,7 +350,9 @@ export default function Dashboard() {
     const ellipsisInterval = setInterval(() => {
       const dots = ".".repeat((ellipsisIndex % 3) + 1); // cycles ".", "..", "..."
       setMessages((msgs) =>
-        msgs.map((it) => (it.id === placeholder.id ? { ...it, text: dots } : it))
+        msgs.map((it) =>
+          it.id === placeholder.id ? { ...it, text: dots } : it
+        )
       );
       ellipsisIndex += 1;
     }, 400);
