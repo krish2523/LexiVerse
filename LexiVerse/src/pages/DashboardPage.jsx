@@ -3,6 +3,17 @@ import LeftPanel from "../components/LeftPanel";
 import RightPanel from "../components/RightPanel";
 
 export default function DashboardPage() {
+  /**
+   * DashboardPage - page-level composition
+   *
+   * Responsibilities:
+   * - hold top-level state for uploaded document, analysis results and chat
+   * - expose handlers (uploadFile, sendMessage) to the Left/Right panels
+   * - persist a session id to localStorage for chat continuity
+   *
+   * The page delegates rendering to `LeftPanel` and `RightPanel` which are
+   * presentational and accept handlers/props from this component.
+   */
   const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
   const [uploadedFileName, setUploadedFileName] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -54,6 +65,13 @@ export default function DashboardPage() {
     return () => interval && clearInterval(interval);
   }, [uploading]);
 
+  // ---------------------------------------------
+  // Handlers: uploadFile, handleFileChange, sendMessage, handleChatKeyDown
+  // These functions are responsible for performing API calls and updating
+  // the state used by the Left/Right panels. They intentionally keep side
+  // effects local to this page (network calls, localStorage) so child
+  // components remain simple and easy to test.
+  // ---------------------------------------------
   // copy handlers (uploadFile, handleFileChange, sendMessage, handleChatKeyDown) from Dashboard.jsx
   const uploadFile = async (file) => {
     try {

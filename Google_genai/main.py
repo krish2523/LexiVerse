@@ -1,3 +1,11 @@
+"""FastAPI entrypoint for the LexiVerse backend.
+
+This module defines the HTTP endpoints used by the frontend to analyze
+documents and chat with analyzed document context. Keep handlers thin:
+they validate input and delegate heavy work to the workflow classes in
+`app.core`.
+"""
+
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -38,6 +46,11 @@ rag_workflow = RAGWorkflow()
 
 @app.get("/")
 async def root():
+    """Root endpoint returning service metadata and available endpoints.
+
+    The frontend can use this for a lightweight service discovery in
+    development or for health dashboards.
+    """
     return {
         "message": f"Welcome to {settings.APP_NAME}",
         "version": settings.APP_VERSION,
@@ -63,6 +76,12 @@ async def health_check():
 async def analyze_document(
     file: UploadFile = File(..., description="Legal document (PDF or DOCX)")
 ):
+    """Accepts a single file upload, validates and passes it to the
+    DocumentWorkflow for extraction, validation and analysis.
+
+    Returns a JSON response with either an analyzer result or a rejection
+    reason. Exceptions are converted into HTTP errors to keep the API stable.
+    """
     try:
         if not file.filename:
             raise HTTPException(

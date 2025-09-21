@@ -1,3 +1,12 @@
+"""Document processing workflow module.
+
+This module wires together the document processing steps (text extraction,
+validation, analysis and rejection generation) using a LangGraph StateGraph.
+The DocumentWorkflow class presents a simple `process_document` async API
+that accepts an UploadFile and returns either an AnalyzerResponse or
+RejectionResponse.
+"""
+
 from app.utils.doc_process import DocumentProcessor
 from app.core.analyzer import DocumentAnalyzer
 from app.core.validator import ContentValidator
@@ -36,6 +45,9 @@ class DocumentWorkflow:
 
     def _build_workflow_graph(self) -> StateGraph:
         """Build workflow with conditional routing."""
+        # The workflow is represented as a state graph where nodes are
+        # coroutine functions that accept and return the DocumentState.
+        # Edges and conditional edges determine the control flow.
         workflow = StateGraph(DocumentState)
 
         workflow.add_node("extract_text", self._extract_text_node)
@@ -63,6 +75,8 @@ class DocumentWorkflow:
     async def _extract_text_node(self, state: DocumentState) -> DocumentState:
         """Extract text from the uploaded document."""
         try:
+            # Attempt to extract text using the configured DocumentProcessor.
+            # Any failure here will set a rejection result stored in state.
             logger.info("Extracting text from document")
             state["document_text"] = await self.processor.extract_text(state["file"])
             return state
@@ -78,6 +92,9 @@ class DocumentWorkflow:
     async def _validate_document_node(self, state: DocumentState) -> DocumentState:
         """Validate if the document is a legal document."""
         try:
+            # Use the ContentValidator to determine whether the extracted
+            # document appears to be a legal document. The validator returns
+            # a small object with a `decision` attribute (accept/reject).
             logger.info("Validating document content")
             validation_result = await self.validator.is_legal_document(state["document_text"])
             
@@ -101,15 +118,19 @@ class DocumentWorkflow:
 
     def _route_after_validation(self, state: DocumentState) -> str:
         """Route workflow based on validation result."""
+        # If a result is already present (e.g. extraction failed) go to
+        # the rejection branch. Otherwise decide based on validation.
         if state.get("result") is not None:
             return "reject"
-        
+
         validation_decision = state.get("validation_decision", "reject")
         return "reject" if validation_decision == "reject" else "accept"
 
     async def _analyze_document_node(self, state: DocumentState) -> DocumentState:
         """Analyze the validated document."""
         try:
+            # Call the analyzer which returns a structured AnalyzerResponse
+            # describing document_type, summary and important clauses.
             logger.info("Document accepted, analyzing content")
             analysis_result = await self.analyzer.analyze(state["document_text"])
             state["result"] = analysis_result

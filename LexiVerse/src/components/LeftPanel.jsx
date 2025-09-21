@@ -1,5 +1,13 @@
 import React from "react";
 
+/**
+ * LeftPanel - presentational component
+ *
+ * This component receives a number of props from `DashboardPage` and renders
+ * the file upload area, the summary view and the important clauses list.
+ * Keep this component free of side-effects; it should only call handlers
+ * passed from the parent.
+ */
 export default function LeftPanel(props) {
   const {
     uploadedFileName,

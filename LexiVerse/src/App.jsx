@@ -4,6 +4,9 @@ import LandingPage from "./pages/LandingPage";
 import DashboardPage from "./pages/DashboardPage";
 
 function App() {
+  // Top-level router. Keep routes minimal and have page-level components
+  // own their internal composition and state. The DashboardPage is the
+  // composed page created from LeftPanel and RightPanel components.
   return (
     <Router>
       <Routes>

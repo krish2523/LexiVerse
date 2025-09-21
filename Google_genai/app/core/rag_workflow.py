@@ -23,7 +23,18 @@ from app.config import settings
 
 
 class RAGState(TypedDict):
-    """State for RAG workflow."""
+    """TypedDict describing the RAG workflow state.
+
+    Fields:
+    - document_content: the raw extracted text from the uploaded file
+    - validation_result: result from ContentValidator (accept/reject)
+    - vector_store_id: session-key to find the FAISS vector store
+    - messages: chat history (list of role/content dicts)
+    - user_message: the current user question
+    - response: the assistant's response text
+    - session_id: unique session identifier
+    - document_processed: whether the document has been embedded
+    """
     document_content: str
     validation_result: Optional[ValidatorResponse]
     vector_store_id: Optional[str]
@@ -35,7 +46,17 @@ class RAGState(TypedDict):
 
 
 class RAGWorkflow:
-    """RAG workflow for conversational document chat."""
+    """RAG workflow for conversational document chat.
+
+    This class wraps the steps required to:
+    1. Validate whether a document is legal-related
+    2. Slice the document into chunks and build a FAISS vector store
+    3. Run retrieval for user questions and generate an LLM response
+
+    The `chat` coroutine provides a simple interface: given a message,
+    session_id and optional file it restores memory, processes the
+    document if necessary, and returns a ChatResponse.
+    """
 
     def __init__(self):
         """Initialize RAG workflow with necessary components."""
@@ -54,7 +75,12 @@ class RAGWorkflow:
         self.app = self.workflow.compile(checkpointer=self.memory)
 
     def _build_workflow(self) -> StateGraph:
-        """Build the LangGraph workflow with conditional routing."""
+        """Build the LangGraph workflow with conditional routing.
+
+        The workflow uses conditional edges to route requests depending on
+        whether a document exists, whether it has been validated and whether
+        it needs processing.
+        """
         workflow = StateGraph(RAGState)
         workflow.add_node("route_initial", self._route_initial)
         workflow.add_node("validate_document", self._validate_document)
@@ -82,7 +108,11 @@ class RAGWorkflow:
         return workflow
 
     def _generate_session_id(self) -> str:
-        """Generate a unique session ID using cryptographically secure random string."""
+        """Generate a unique session ID using a cryptographically secure string.
+
+        The generated ID is used as a key for in-memory vector stores and
+        for checkpointing conversation state.
+        """
         alphabet = string.ascii_letters + string.digits
         return ''.join(secrets.choice(alphabet) for _ in range(32))
 

@@ -1,6 +1,16 @@
 import React from "react";
 import ThreeDModel from "./ThreeDModel";
 
+/**
+ * RightPanel - presentational chat and 3D view
+ *
+ * Props expected (from DashboardPage):
+ * - uploadedFileName, documentId, messages, chatContainerRef
+ * - chatInput, setChatInput, handleChatKeyDown, sendMessage
+ * - uploading, setMessages, setShowUploadHint, modelError, setModelError
+ *
+ * This component focuses on rendering chat messages and the 3D model.
+ */
 export default function RightPanel(props) {
   const {
     uploadedFileName,
